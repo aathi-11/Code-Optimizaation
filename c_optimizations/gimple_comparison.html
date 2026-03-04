@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIMPLE Optimization Comparison — GCC Passes</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+            --green: #4ade80;
+            --red: #f87171;
+            --yellow: #fbbf24;
+            --purple: #a78bfa;
+            --orange: #fb923c;
+            --pink: #f472b6;
+            --teal: #2dd4bf;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 2.5rem 2rem;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.4rem;
+        }
+        .header p { color: var(--muted); font-size: 1rem; }
+        .header .file-badge {
+            display: inline-block;
+            margin-top: 0.75rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 0.3rem 1rem;
+            border-radius: 999px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        /* ===== STATS BAR ===== */
+        .stats-bar {
+            display: flex; justify-content: center; gap: 2.5rem;
+            padding: 1.5rem 2rem;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .stat { text-align: center; }
+        .stat .num { font-size: 1.8rem; font-weight: 700; }
+        .stat .label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat.green .num { color: var(--green); }
+        .stat.red .num { color: var(--red); }
+        .stat.yellow .num { color: var(--yellow); }
+        .stat.purple .num { color: var(--purple); }
+        .stat.accent .num { color: var(--accent); }
+        .stat.teal .num { color: var(--teal); }
+
+        /* ===== CONTAINER ===== */
+        .container { max-width: 1440px; margin: 0 auto; padding: 2rem; }
+
+        /* ===== SECTIONS ===== */
+        .section { margin-bottom: 2.5rem; }
+        .section-title {
+            font-size: 1.35rem; font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .section-title .icon {
+            width: 28px; height: 28px; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+        }
+
+        /* ===== PIPELINE ===== */
+        .pipeline {
+            display: flex; align-items: center; gap: 0;
+            overflow-x: auto; padding: 1rem 0;
+            margin-bottom: 1rem;
+        }
+        .pipe-step {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 10px; padding: 0.75rem 1.1rem;
+            min-width: 130px; text-align: center;
+            cursor: pointer; transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .pipe-step:hover, .pipe-step.active { border-color: var(--accent); background: rgba(56,189,248,0.08); }
+        .pipe-step .step-num { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+        .pipe-step .step-name { font-size: 0.82rem; font-weight: 600; color: var(--text); margin-top: 2px; }
+        .pipe-step .step-file { font-size: 0.68rem; color: var(--accent); font-family: 'Consolas', monospace; margin-top: 2px; }
+        .pipe-arrow { color: var(--accent); font-size: 1.3rem; margin: 0 0.3rem; flex-shrink: 0; }
+
+        /* ===== CARDS ===== */
+        .opt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 1.5rem; }
+        .opt-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .opt-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .opt-card-header {
+            padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .opt-card-header h3 { font-size: 1rem; font-weight: 600; }
+        .badge {
+            font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 999px;
+            font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .badge-green { background: rgba(74,222,128,0.15); color: var(--green); }
+        .badge-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
+        .badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
+        .badge-purple { background: rgba(167,139,250,0.15); color: var(--purple); }
+        .badge-accent { background: rgba(56,189,248,0.15); color: var(--accent); }
+        .badge-orange { background: rgba(251,146,60,0.15); color: var(--orange); }
+        .badge-pink { background: rgba(244,114,182,0.15); color: var(--pink); }
+        .badge-teal { background: rgba(45,212,191,0.15); color: var(--teal); }
+
+        .opt-card-body { display: grid; grid-template-columns: 1fr 1fr; }
+        .code-panel { padding: 1rem 1.25rem; position: relative; }
+        .code-panel:first-child { border-right: 1px solid var(--border); }
+        .code-panel-label {
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+            color: var(--muted); margin-bottom: 0.5rem; font-weight: 600;
+        }
+        .code-panel-label.before { color: var(--red); }
+        .code-panel-label.after { color: var(--green); }
+
+        pre {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.82rem; line-height: 1.7;
+            overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+        }
+        .hl-removed { background: rgba(248,113,113,0.12); color: var(--red); border-radius: 3px; padding: 1px 3px; }
+        .hl-added { background: rgba(74,222,128,0.12); color: var(--green); border-radius: 3px; padding: 1px 3px; }
+        .hl-kw { color: var(--purple); }
+        .hl-type { color: var(--accent); }
+        .hl-num { color: var(--orange); }
+        .hl-cmt { color: var(--muted); font-style: italic; }
+
+        .opt-card-footer {
+            padding: 0.75rem 1.25rem; border-top: 1px solid var(--border);
+            background: rgba(15,23,42,0.4); font-size: 0.82rem; color: var(--muted);
+        }
+        .opt-card-footer strong { color: var(--text); }
+
+        /* ===== FULL CODE ===== */
+        .full-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
+        .full-code-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .full-code-header {
+            padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border);
+            font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .full-code-header.before-h { color: var(--red); }
+        .full-code-header.after-h { color: var(--green); }
+        .full-code-header .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .full-code-header.before-h .dot { background: var(--red); }
+        .full-code-header.after-h .dot { background: var(--green); }
+        .full-code-body { padding: 1.25rem; max-height: 700px; overflow-y: auto; }
+        .full-code-body pre { font-size: 0.8rem; line-height: 1.75; }
+        .line-num {
+            display: inline-block; width: 24px; text-align: right;
+            margin-right: 12px; color: #475569; user-select: none; font-size: 0.72rem;
+        }
+
+        /* ===== METHOD TABS ===== */
+        .method-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .method-tab {
+            padding: 0.4rem 1rem; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--card);
+            color: var(--muted); cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+        }
+        .method-tab:hover, .method-tab.active { background: rgba(56,189,248,0.1); border-color: var(--accent); color: var(--accent); }
+
+        /* ===== SUMMARY TABLE ===== */
+        .summary-table {
+            width: 100%; border-collapse: collapse;
+            background: var(--card); border-radius: 12px; overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .summary-table th {
+            background: rgba(15,23,42,0.6); padding: 0.75rem 1rem;
+            text-align: left; font-size: 0.78rem; text-transform: uppercase;
+            letter-spacing: 0.04em; color: var(--muted); border-bottom: 1px solid var(--border);
+        }
+        .summary-table td {
+            padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.88rem;
+        }
+        .summary-table tr:last-child td { border-bottom: none; }
+        .summary-table tr:hover td { background: rgba(56,189,248,0.03); }
+        .summary-table code { font-family: 'Consolas', monospace; font-size: 0.82rem; color: var(--accent); }
+
+        .arrow-r { color: var(--accent); font-weight: bold; }
+
+        /* ===== WIDE CARD ===== */
+        .wide-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem;
+        }
+        .wide-card-header {
+            padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .wide-card-header h3 { font-size: 1.05rem; font-weight: 600; }
+        .wide-card-body { padding: 1.25rem; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .opt-card-body { grid-template-columns: 1fr; }
+            .code-panel:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+            .full-compare { grid-template-columns: 1fr; }
+            .opt-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== HEADER ==================== -->
+<div class="header">
+    <h1>GIMPLE IR — Before &amp; After Optimization</h1>
+    <p>GCC Optimization Pipeline &nbsp;·&nbsp; code.c &nbsp;·&nbsp; 11 Passes Analyzed</p>
+    <div class="file-badge">code.c &nbsp;→&nbsp; code.c.006t.gimple &nbsp;→&nbsp; code.c.265t.optimized</div>
+</div>
+
+<!-- ==================== STATS ==================== -->
+<div class="stats-bar">
+    <div class="stat accent"><div class="num">10</div><div class="label">Optimizations Applied</div></div>
+    <div class="stat green"><div class="num">3</div><div class="label">Methods Analyzed</div></div>
+    <div class="stat purple"><div class="num">11</div><div class="label">GCC Passes</div></div>
+    <div class="stat red"><div class="num">7</div><div class="label">Dead Vars Removed</div></div>
+    <div class="stat yellow"><div class="num">2</div><div class="label">Loops Eliminated</div></div>
+    <div class="stat teal"><div class="num">~60%</div><div class="label">Code Reduction (main)</div></div>
+</div>
+
+<div class="container">
+
+    <!-- ==================== PIPELINE ==================== -->
+    <div class="section">
+        <div class="section-title">
+            <div class="icon" style="background:rgba(56,189,248,0.15);">🔗</div>
+            GCC Optimization Pipeline
+        </div>
+        <div class="pipeline">
+            <div class="pipe-step">
+                <div class="step-num">Pass 1</div>
+                <div class="step-name">Initial GIMPLE</div>
+                <div class="step-file">006t.gimple</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="step-num">Pass 2</div>
+                <div class="step-name">CFG Build</div>
+                <div class="step-file">015t.cfg</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="step-num">Pass 3</div>
+                <div class="step-name">Early Inlining</div>
+                <div class="step-file">032t.einline</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="step-num">Pass 4</div>
+                <div class="step-name">Const Propagation</div>
+                <div class="step-file">035t.ccp1</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="step-num">Pass 5</div>
+                <div class="step-name">Forward Prop</div>
+                <div class="step-file">036t.forwprop1</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="step-num">Pass 6</div>
+                <div class="step-name">Redundancy Elim</div>
+                <div class="step-file">041t.fre1</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="step-num">Pass 7</div>
+                <div class="step-name">Value Range (EVRP)</div>
+                <div class="step-file">042t.evrp</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="step-num">Pass 8</div>
+                <div class="step-name">IPA Const Prop</div>
+                <div class="step-file">085i.cp</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="step-num">Pass 9</div>
+                <div class="step-name">Copy Propagation</div>
+                <div class="step-file">127t.copyprop1</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+                <div class="step-num">Pass 10</div>
+                <div class="step-name">Loop Inv Motion</div>
+                <div class="step-file">148t.lim2</div>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step" style="border-color:var(--green);">
+                <div class="step-num" style="color:var(--green);">Final</div>
+                <div class="step-name" style="color:var(--green);">Fully Optimized</div>
+                <div class="step-file">265t.optimized</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== METHOD 1: apply_tax ==================== -->
+    <div class="section">
+        <div class="section-title">
+            <div class="icon" style="background:rgba(167,139,250,0.15);">①</div>
+            Method: <code style="color:var(--accent); margin-left:0.3rem;">apply_tax(int amount)</code>
+        </div>
+
+        <div class="full-compare">
+            <div class="full-code-card">
+                <div class="full-code-header before-h">
+                    <span class="dot"></span> Before — 006t.gimple
+                </div>
+                <div class="full-code-body">
+<pre><span class="line-num">1</span><span class="hl-type">int</span> <span class="hl-kw">apply_tax</span> (<span class="hl-type">int</span> amount)
+<span class="line-num">2</span>{
+<span class="line-num">3</span>  <span class="hl-type">int</span> D.4343;
+<span class="line-num">4</span>
+<span class="line-num">5</span>  D.4343 = amount + <span class="hl-num">5</span>;
+<span class="line-num">6</span>  <span class="hl-kw">return</span> D.4343;
+<span class="line-num">7</span>}</pre>
+                </div>
+            </div>
+            <div class="full-code-card">
+                <div class="full-code-header after-h">
+                    <span class="dot"></span> After — 265t.optimized
+                </div>
+                <div class="full-code-body">
+<pre><span class="line-num">1</span><span class="hl-type">int</span> <span class="hl-kw">apply_tax</span> (<span class="hl-type">int</span> amount)
+<span class="line-num">2</span>{
+<span class="line-num">3</span>  <span class="hl-type">int</span> <span class="hl-added">_2</span>;
+<span class="line-num">4</span>
+<span class="line-num">5</span>  <span class="hl-added">_2</span> = amount_1(D) + <span class="hl-num">5</span>;
+<span class="line-num">6</span>  <span class="hl-kw">return</span> <span class="hl-added">_2</span>;
+<span class="line-num">7</span>}</pre>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:0.75rem; padding:0.75rem 1.25rem; background:var(--card); border:1px solid var(--border); border-radius:10px; font-size:0.88rem; color:var(--muted);">
+            <strong style="color:var(--text);">Analysis:</strong> Minimal change — temporary <code style="color:var(--accent);">D.4343</code> renamed to SSA variable <code style="color:var(--accent);">_2</code>. Function body is already optimal (single addition). This function is <strong style="color:var(--green);">inlined</strong> into <code>main()</code> at pass 032t.einline.
+        </div>
+    </div>
+
+    <!-- ==================== METHOD 2: process_batch ==================== -->
+    <div class="section">
+        <div class="section-title">
+            <div class="icon" style="background:rgba(251,191,36,0.15);">②</div>
+            Method: <code style="color:var(--accent); margin-left:0.3rem;">process_batch(int count, int rate)</code>
+        </div>
+
+        <div class="full-compare">
+            <div class="full-code-card">
+                <div class="full-code-header before-h">
+                    <span class="dot"></span> Before — 006t.gimple
+                </div>
+                <div class="full-code-body">
+<pre><span class="line-num">1</span><span class="hl-type">int</span> <span class="hl-kw">process_batch</span> (<span class="hl-type">int</span> count, <span class="hl-type">int</span> rate)
+<span class="line-num">2</span>{
+<span class="line-num">3</span>  <span class="hl-type">int</span> D.4345;
+<span class="line-num">4</span>
+<span class="line-num">5</span>  _1 = count * rate;
+<span class="line-num">6</span>  D.4345 = _1 * <span class="hl-num">2</span>;
+<span class="line-num">7</span>  <span class="hl-kw">return</span> D.4345;
+<span class="line-num">8</span>}</pre>
+                </div>
+            </div>
+            <div class="full-code-card">
+                <div class="full-code-header after-h">
+                    <span class="dot"></span> After — 265t.optimized
+                </div>
+                <div class="full-code-body">
+<pre><span class="line-num">1</span><span class="hl-type">int</span> <span class="hl-kw">process_batch</span> (<span class="hl-type">int</span> count, <span class="hl-type">int</span> rate)
+<span class="line-num">2</span>{
+<span class="line-num">3</span>  <span class="hl-type">int</span> <span class="hl-added">_1</span>;
+<span class="line-num">4</span>  <span class="hl-type">int</span> <span class="hl-added">_4</span>;
+<span class="line-num">5</span>
+<span class="line-num">6</span>  _1 = count_2(D) * rate_3(D);
+<span class="line-num">7</span>  <span class="hl-added">_4</span> = _1 * <span class="hl-num">2</span>;
+<span class="line-num">8</span>  <span class="hl-kw">return</span> <span class="hl-added">_4</span>;
+<span class="line-num">9</span>}</pre>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:0.75rem; padding:0.75rem 1.25rem; background:var(--card); border:1px solid var(--border); border-radius:10px; font-size:0.88rem; color:var(--muted);">
+            <strong style="color:var(--text);">Analysis:</strong> The original C code had <code style="color:var(--accent);">(count*rate) + (count*rate)</code> — GCC's front-end already recognized this as <code style="color:var(--accent);">count*rate*2</code>. The call <code style="color:var(--accent);">process_batch(10, 5)</code> is constant-folded to <code style="color:var(--green);">100</code> at the call site in main during CCP.
+        </div>
+    </div>
+
+    <!-- ==================== METHOD 3: main ==================== -->
+    <div class="section">
+        <div class="section-title">
+            <div class="icon" style="background:rgba(248,113,113,0.15);">③</div>
+            Method: <code style="color:var(--accent); margin-left:0.3rem;">main()</code> — The Big Transformation
+        </div>
+
+        <div class="full-compare">
+            <div class="full-code-card">
+                <div class="full-code-header before-h">
+                    <span class="dot"></span> Before — 006t.gimple (70 lines)
+                </div>
+                <div class="full-code-body">
+<pre><span class="line-num"> 1</span><span class="hl-type">int</span> <span class="hl-kw">main</span> ()
+<span class="line-num"> 2</span>{
+<span class="line-num"> 3</span>  <span class="hl-type">long long int</span> total_balance;
+<span class="line-num"> 4</span>  <span class="hl-type">int</span> base_val;
+<span class="line-num"> 5</span>
+<span class="line-num"> 6</span>  total_balance = <span class="hl-num">0</span>;
+<span class="line-num"> 7</span>  base_val = <span class="hl-num">25</span>;
+<span class="line-num"> 8</span>
+<span class="line-num"> 9</span>  <span class="hl-cmt">// === LOOP 1: i = 0 to 999999 ===</span>
+<span class="line-num">10</span>  i = <span class="hl-num">0</span>;
+<span class="line-num">11</span>  <span class="hl-kw">goto</span> &lt;D.4337&gt;;
+<span class="line-num">12</span>  &lt;D.4336&gt;:
+<span class="line-num">13</span>    <span class="hl-removed">step1 = base_val + 15;</span>         <span class="hl-cmt">// const prop</span>
+<span class="line-num">14</span>    <span class="hl-removed">step2 = step1;</span>                <span class="hl-cmt">// copy prop</span>
+<span class="line-num">15</span>    <span class="hl-removed">final_step = step2;</span>           <span class="hl-cmt">// copy prop</span>
+<span class="line-num">16</span>    <span class="hl-removed">scaled_idx = i * 4;</span>           <span class="hl-cmt">// strength red</span>
+<span class="line-num">17</span>    <span class="hl-removed">normalized = scaled_idx;</span>      <span class="hl-cmt">// copy prop</span>
+<span class="line-num">18</span>    <span class="hl-removed">p = 12;</span>
+<span class="line-num">19</span>    <span class="hl-removed">q = 8;</span>
+<span class="line-num">20</span>    <span class="hl-removed">check1 = p * q;</span>              <span class="hl-cmt">// CSE + dead</span>
+<span class="line-num">21</span>    <span class="hl-removed">check2 = p * q;</span>              <span class="hl-cmt">// CSE + dead</span>
+<span class="line-num">22</span>    <span class="hl-removed">temp_audit = 500;</span>            <span class="hl-cmt">// dead code</span>
+<span class="line-num">23</span>    <span class="hl-removed">if (i &lt; -1) goto &lt;D.4347&gt;;</span>   <span class="hl-cmt">// unreachable</span>
+<span class="line-num">24</span>    <span class="hl-removed">&lt;D.4347&gt;:</span>
+<span class="line-num">25</span>    <span class="hl-removed">total_balance += 999;</span>        <span class="hl-cmt">// dead branch</span>
+<span class="line-num">26</span>    &lt;D.4348&gt;:
+<span class="line-num">27</span>    <span class="hl-removed">static_bias = 80;</span>            <span class="hl-cmt">// const fold</span>
+<span class="line-num">28</span>    <span class="hl-removed">_1 = apply_tax(33);</span>          <span class="hl-cmt">// inlined</span>
+<span class="line-num">29</span>    _2 = final_step + _1;
+<span class="line-num">30</span>    D.4349 = static_bias + _2;
+<span class="line-num">31</span>    _3 = (<span class="hl-type">long long int</span>) D.4349;
+<span class="line-num">32</span>    total_balance += _3;
+<span class="line-num">33</span>    GLOBAL_FEE.0_4 = GLOBAL_FEE;
+<span class="line-num">34</span>    _5 = (<span class="hl-type">long long int</span>) GLOBAL_FEE.0_4;
+<span class="line-num">35</span>    total_balance += _5;
+<span class="line-num">36</span>  i = i + <span class="hl-num">1</span>;
+<span class="line-num">37</span>  &lt;D.4337&gt;:
+<span class="line-num">38</span>  <span class="hl-kw">if</span> (i &lt;= <span class="hl-num">999999</span>) <span class="hl-kw">goto</span> &lt;D.4336&gt;;
+<span class="line-num">39</span>
+<span class="line-num">40</span>  <span class="hl-cmt">// === LOOP 2: j = 0 to 999999 ===</span>
+<span class="line-num">41</span>  j = <span class="hl-num">0</span>;
+<span class="line-num">42</span>  <span class="hl-kw">goto</span> &lt;D.4341&gt;;
+<span class="line-num">43</span>  &lt;D.4340&gt;:
+<span class="line-num">44</span>    <span class="hl-removed">D.4350 = process_batch(10, 5);</span> <span class="hl-cmt">// const fold</span>
+<span class="line-num">45</span>    _6 = (<span class="hl-type">long long int</span>) D.4350;
+<span class="line-num">46</span>    total_balance += _6;
+<span class="line-num">47</span>  j = j + <span class="hl-num">1</span>;
+<span class="line-num">48</span>  &lt;D.4341&gt;:
+<span class="line-num">49</span>  <span class="hl-kw">if</span> (j &lt;= <span class="hl-num">999999</span>) <span class="hl-kw">goto</span> &lt;D.4340&gt;;
+<span class="line-num">50</span>
+<span class="line-num">51</span>  printf("Final Balance: %lld\n",
+<span class="line-num">52</span>         total_balance);
+<span class="line-num">53</span>  <span class="hl-kw">return</span> <span class="hl-num">0</span>;
+<span class="line-num">54</span>}</pre>
+                </div>
+            </div>
+            <div class="full-code-card">
+                <div class="full-code-header after-h">
+                    <span class="dot"></span> After — 265t.optimized (15 lines!)
+                </div>
+                <div class="full-code-body">
+<pre><span class="line-num"> 1</span><span class="hl-type">int</span> <span class="hl-kw">main</span> ()
+<span class="line-num"> 2</span>{
+<span class="line-num"> 3</span>  <span class="hl-type">long long int</span> total_balance;
+<span class="line-num"> 4</span>  <span class="hl-type">int</span> GLOBAL_FEE.0_1;
+<span class="line-num"> 5</span>  <span class="hl-type">long long int</span> _2;
+<span class="line-num"> 6</span>  <span class="hl-type">unsigned long long</span> _5, _6;
+<span class="line-num"> 7</span>  <span class="hl-type">long long int</span> _16;
+<span class="line-num"> 8</span>
+<span class="line-num"> 9</span>  GLOBAL_FEE.0_1 = GLOBAL_FEE;
+<span class="line-num">10</span>  _2 = (<span class="hl-type">long long int</span>) GLOBAL_FEE.0_1;
+<span class="line-num">11</span>  <span class="hl-added">_16 = _2 + 158;</span>              <span class="hl-cmt">// all constants folded!</span>
+<span class="line-num">12</span>  <span class="hl-added">_6 = (ull) _16;</span>
+<span class="line-num">13</span>  <span class="hl-added">_5 = _6 * 1000000;</span>           <span class="hl-cmt">// loop 1 eliminated!</span>
+<span class="line-num">14</span>  total_balance_21 = (<span class="hl-type">ll</span>) _5;
+<span class="line-num">15</span>  <span class="hl-added">total_balance_19 =</span>
+<span class="line-num">16</span>    <span class="hl-added">total_balance_21 + 100000000;</span> <span class="hl-cmt">// loop 2 eliminated!</span>
+<span class="line-num">17</span>  printf("Final Balance: %lld\n",
+<span class="line-num">18</span>         total_balance_19);
+<span class="line-num">19</span>  <span class="hl-kw">return</span> <span class="hl-num">0</span>;
+<span class="line-num">20</span>}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== OPTIMIZATION CARDS ==================== -->
+    <div class="section">
+        <div class="section-title">
+            <div class="icon" style="background:rgba(56,189,248,0.15);">⚡</div>
+            Optimization Techniques — Detailed Comparison
+        </div>
+
+        <div class="opt-grid">
+
+            <!-- 1. Function Inlining -->
+            <div class="opt-card">
+                <div class="opt-card-header">
+                    <h3>1. Function Inlining</h3>
+                    <span class="badge badge-green">032t.einline</span>
+                </div>
+                <div class="opt-card-body">
+                    <div class="code-panel">
+                        <div class="code-panel-label before">Before</div>
+<pre>
+<span class="hl-removed">_1 = apply_tax(33);</span>
+_2 = final_step + _1;
+D.4349 = static_bias + _2;
+</pre>
+                    </div>
+                    <div class="code-panel">
+                        <div class="code-panel-label after">After (einline)</div>
+<pre>
+<span class="hl-added">_21 = 38;</span>       <span class="hl-cmt">// 33 + 5 = 38</span>
+<span class="hl-added">_43 = _21;</span>
+<span class="hl-added">_1 = _43;</span>
+_2 = final_step_27 + _1;
+</pre>
+                    </div>
+                </div>
+                <div class="opt-card-footer">
+                    <strong>Pass:</strong> 032t.einline &nbsp;·&nbsp; <code>apply_tax(33)</code> body inlined → <code>33 + 5 = 38</code>. Function call overhead eliminated.
+                </div>
+            </div>
+
+            <!-- 2. Constant Propagation & Folding -->
+            <div class="opt-card">
+                <div class="opt-card-header">
+                    <h3>2. Constant Propagation &amp; Folding</h3>
+                    <span class="badge badge-accent">035t.ccp1</span>
+                </div>
+                <div class="opt-card-body">
+                    <div class="code-panel">
+                        <div class="code-panel-label before">Before</div>
+<pre>
+<span class="hl-removed">base_val = 25;</span>
+<span class="hl-removed">step1 = base_val + 15;</span>  <span class="hl-cmt">// =40</span>
+<span class="hl-removed">step2 = step1;</span>          <span class="hl-cmt">// =40</span>
+<span class="hl-removed">final_step = step2;</span>     <span class="hl-cmt">// =40</span>
+<span class="hl-removed">static_bias = 80;</span>
+<span class="hl-cmt">// 40 + 38 + 80 = 158</span>
+</pre>
+                    </div>
+                    <div class="code-panel">
+                        <div class="code-panel-label after">After (ccp1)</div>
+<pre>
+<span class="hl-added">total_balance_39 =</span>
+  <span class="hl-added">total_balance_7 + 158;</span>
+
+<span class="hl-cmt">// All constants collapsed:</span>
+<span class="hl-cmt">// base_val(25)+15 = 40</span>
+<span class="hl-cmt">// apply_tax(33) = 38</span>
+<span class="hl-cmt">// static_bias = 80</span>
+<span class="hl-cmt">// Total = 40+38+80 = 158</span>
+</pre>
+                    </div>
+                </div>
+                <div class="opt-card-footer">
+                    <strong>Pass:</strong> 035t.ccp1 &nbsp;·&nbsp; Chain of <code>base_val→step1→step2→final_step</code> + inlined call + <code>static_bias</code> all folded into single constant <strong style="color:var(--green);">158</strong>.
+                </div>
+            </div>
+
+            <!-- 3. Copy Propagation -->
+            <div class="opt-card">
+                <div class="opt-card-header">
+                    <h3>3. Copy Propagation</h3>
+                    <span class="badge badge-purple">035t.ccp1</span>
+                </div>
+                <div class="opt-card-body">
+                    <div class="code-panel">
+                        <div class="code-panel-label before">Before</div>
+<pre>
+step1 = base_val + 15;
+<span class="hl-removed">step2 = step1;</span>
+<span class="hl-removed">final_step = step2;</span>
+
+scaled_idx = i * 4;
+<span class="hl-removed">normalized = scaled_idx;</span>
+</pre>
+                    </div>
+                    <div class="code-panel">
+                        <div class="code-panel-label after">After</div>
+<pre>
+<span class="hl-cmt">// All copies eliminated:</span>
+<span class="hl-cmt">// step2 = step1    → removed</span>
+<span class="hl-cmt">// final_step = step2 → removed</span>
+<span class="hl-cmt">// normalized = scaled_idx → removed</span>
+
+<span class="hl-added">// Values used directly</span>
+</pre>
+                    </div>
+                </div>
+                <div class="opt-card-footer">
+                    <strong>Rule:</strong> When <code>x = y</code>, replace all uses of <code>x</code> with <code>y</code>. Three copy chains removed.
+                </div>
+            </div>
+
+            <!-- 4. Dead Code Elimination -->
+            <div class="opt-card">
+                <div class="opt-card-header">
+                    <h3>4. Dead Code Elimination</h3>
+                    <span class="badge badge-red">Removed</span>
+                </div>
+                <div class="opt-card-body">
+                    <div class="code-panel">
+                        <div class="code-panel-label before">Before</div>
+<pre>
+<span class="hl-removed">p = 12;</span>
+<span class="hl-removed">q = 8;</span>
+<span class="hl-removed">check1 = p * q;</span>
+<span class="hl-removed">check2 = p * q;</span>
+<span class="hl-removed">temp_audit = 500;</span>
+<span class="hl-removed">scaled_idx = i * 4;</span>
+<span class="hl-removed">normalized = scaled_idx;</span>
+</pre>
+                    </div>
+                    <div class="code-panel">
+                        <div class="code-panel-label after">After</div>
+<pre>
+<span class="hl-cmt">// All 7 variables removed:</span>
+<span class="hl-cmt">// p, q          — unused</span>
+<span class="hl-cmt">// check1, check2 — unused</span>
+<span class="hl-cmt">// temp_audit    — unused</span>
+<span class="hl-cmt">// scaled_idx    — unused</span>
+<span class="hl-cmt">// normalized    — unused</span>
+
+<span class="hl-added">✓ 7 dead variables eliminated</span>
+</pre>
+                    </div>
+                </div>
+                <div class="opt-card-footer">
+                    <strong>Rule:</strong> Variables assigned but never read in any live code path are removed entirely.
+                </div>
+            </div>
+
+            <!-- 5. Common Subexpression Elimination -->
+            <div class="opt-card">
+                <div class="opt-card-header">
+                    <h3>5. Common Subexpression Elimination</h3>
+                    <span class="badge badge-yellow">CSE</span>
+                </div>
+                <div class="opt-card-body">
+                    <div class="code-panel">
+                        <div class="code-panel-label before">Before</div>
+<pre>
+p = <span class="hl-num">12</span>;
+q = <span class="hl-num">8</span>;
+check1 = <span class="hl-removed">p * q</span>;
+check2 = <span class="hl-removed">p * q</span>;
+<span class="hl-cmt">// Same expression computed twice</span>
+</pre>
+                    </div>
+                    <div class="code-panel">
+                        <div class="code-panel-label after">After</div>
+<pre>
+<span class="hl-cmt">// p * q appears twice but</span>
+<span class="hl-cmt">// both results are dead.</span>
+<span class="hl-cmt">// CCP folds p*q → 96,</span>
+<span class="hl-cmt">// then DCE removes both.</span>
+
+<span class="hl-added">✓ Eliminated with DCE</span>
+</pre>
+                    </div>
+                </div>
+                <div class="opt-card-footer">
+                    <strong>Pass:</strong> 035t.ccp1 &nbsp;·&nbsp; <code>p*q</code> constant-folded to <code>96</code>, then eliminated as dead code since neither <code>check1</code> nor <code>check2</code> is ever used.
+                </div>
+            </div>
+
+            <!-- 6. Unreachable Code Elimination -->
+            <div class="opt-card">
+                <div class="opt-card-header">
+                    <h3>6. Unreachable Code Elimination</h3>
+                    <span class="badge badge-red">042t.evrp</span>
+                </div>
+                <div class="opt-card-body">
+                    <div class="code-panel">
+                        <div class="code-panel-label before">Before</div>
+<pre>
+<span class="hl-cmt">// i starts at 0, increments to 999999</span>
+<span class="hl-removed">if (i &lt; -1) goto &lt;D.4347&gt;;</span>
+<span class="hl-removed">&lt;D.4347&gt;:</span>
+<span class="hl-removed">  total_balance += 999;</span>
+</pre>
+                    </div>
+                    <div class="code-panel">
+                        <div class="code-panel-label after">After (evrp)</div>
+<pre>
+<span class="hl-cmt">// EVRP determines:</span>
+<span class="hl-cmt">// i ∈ [0, 1000000]</span>
+<span class="hl-cmt">// So i &lt; -1 is ALWAYS false</span>
+<span class="hl-added">// Folding predicate i &lt; -1 to 0</span>
+<span class="hl-added">// Removing basic block 4</span>
+<span class="hl-added">✓ Dead branch removed</span>
+</pre>
+                    </div>
+                </div>
+                <div class="opt-card-footer">
+                    <strong>Pass:</strong> 042t.evrp &nbsp;·&nbsp; Value range analysis proves <code>i ∈ [0, 1000000]</code>, so <code>i &lt; -1</code> is always false. Entire branch pruned.
+                </div>
+            </div>
+
+            <!-- 7. Strength Reduction -->
+            <div class="opt-card">
+                <div class="opt-card-header">
+                    <h3>7. Strength Reduction</h3>
+                    <span class="badge badge-orange">036t.forwprop1</span>
+                </div>
+                <div class="opt-card-body">
+                    <div class="code-panel">
+                        <div class="code-panel-label before">Before</div>
+<pre>
+scaled_idx_28 = i_10 <span class="hl-removed">* 4</span>;
+<span class="hl-cmt">// Multiplication in loop body</span>
+</pre>
+                    </div>
+                    <div class="code-panel">
+                        <div class="code-panel-label after">After (forwprop1)</div>
+<pre>
+scaled_idx_28 = i_10 <span class="hl-added">&lt;&lt; 2</span>;
+<span class="hl-cmt">// Shift is faster than multiply</span>
+</pre>
+                    </div>
+                </div>
+                <div class="opt-card-footer">
+                    <strong>Pass:</strong> 036t.forwprop1 &nbsp;·&nbsp; <code>i * 4</code> → <code>i &lt;&lt; 2</code>. Multiplication replaced with left-shift (cheaper CPU operation). Later removed entirely by DCE.
+                </div>
+            </div>
+
+            <!-- 8. Loop Invariant Code Motion -->
+            <div class="opt-card">
+                <div class="opt-card-header">
+                    <h3>8. Loop Invariant Code Motion</h3>
+                    <span class="badge badge-teal">148t.lim2</span>
+                </div>
+                <div class="opt-card-body">
+                    <div class="code-panel">
+                        <div class="code-panel-label before">Before (inside loop)</div>
+<pre>
+<span class="hl-kw">label1:</span> <span class="hl-cmt">// repeats 1M times</span>
+  ...
+  <span class="hl-removed">GLOBAL_FEE.0_4 = GLOBAL_FEE;</span>
+  <span class="hl-removed">_5 = (long long int) GLOBAL_FEE.0_4;</span>
+  total_balance += _5;
+  ...
+</pre>
+                    </div>
+                    <div class="code-panel">
+                        <div class="code-panel-label after">After (lim2 — hoisted)</div>
+<pre>
+<span class="hl-added">GLOBAL_FEE.0_1 = GLOBAL_FEE;</span>  <span class="hl-cmt">// before loop!</span>
+<span class="hl-added">_2 = (long long int) GLOBAL_FEE.0_1;</span>
+
+<span class="hl-kw">label1:</span>
+  total_balance_11 = ... + <span class="hl-num">158</span>;
+  total_balance_12 = <span class="hl-added">_2</span> + ...;
+</pre>
+                    </div>
+                </div>
+                <div class="opt-card-footer">
+                    <strong>Pass:</strong> 148t.lim2 &nbsp;·&nbsp; <code>GLOBAL_FEE</code> load is loop-invariant (value doesn't change). Hoisted before the loop — avoids 1,000,000 redundant memory reads.
+                </div>
+            </div>
+
+            <!-- 9. Function Cloning -->
+            <div class="opt-card">
+                <div class="opt-card-header">
+                    <h3>9. Function Cloning</h3>
+                    <span class="badge badge-pink">085i.cp</span>
+                </div>
+                <div class="opt-card-body">
+                    <div class="code-panel">
+                        <div class="code-panel-label before">Before (Generic Functions)</div>
+<pre>
+<span class="hl-cmt">// Generic functions with parameters:</span>
+<span class="hl-type">int</span> <span class="hl-kw">apply_tax</span>(<span class="hl-type">int</span> amount) {
+    <span class="hl-kw">return</span> amount + <span class="hl-num">5</span>;
+}
+
+<span class="hl-type">int</span> <span class="hl-kw">process_batch</span>(<span class="hl-type">int</span> count, <span class="hl-type">int</span> rate) {
+    <span class="hl-kw">return</span> (count * rate) * <span class="hl-num">2</span>;
+}
+
+<span class="hl-cmt">// Called with constants:</span>
+<span class="hl-removed">apply_tax(33);</span>
+<span class="hl-removed">process_batch(10, 5);</span>
+</pre>
+                    </div>
+                    <div class="code-panel">
+                        <div class="code-panel-label after">After (IPA CP Analysis)</div>
+<pre>
+<span class="hl-cmt">// IPA Constant Propagation evaluates</span>
+<span class="hl-cmt">// whether to create specialized clones</span>
+<span class="hl-cmt">// for constant arguments:</span>
+
+<span class="hl-cmt">// apply_tax(33) → clone with amount=33</span>
+<span class="hl-cmt">//   → body: return 33+5 = 38</span>
+<span class="hl-added">// Result: fully inlined to 38</span>
+
+<span class="hl-cmt">// process_batch(10, 5) → clone with</span>
+<span class="hl-cmt">//   count=10, rate=5</span>
+<span class="hl-cmt">//   → body: (10*5)*2 = 100</span>
+<span class="hl-added">// Result: folded to constant 100</span>
+</pre>
+                    </div>
+                </div>
+                <div class="opt-card-footer">
+                    <strong>Pass:</strong> 085i.cp &nbsp;·&nbsp; IPA CP analyzed <code>apply_tax</code> and <code>process_batch</code> for cloning with constant arguments. Since calls were already inlined and constant-folded, GCC chose the more aggressive optimization (inlining &gt; cloning). Function cloning would create specialized copies like <code>apply_tax.constprop.0()</code> with hardcoded argument values.
+                </div>
+            </div>
+
+            <!-- 10. Loop Elimination -->
+            <div class="opt-card" style="grid-column: 1 / -1;">
+                <div class="opt-card-header">
+                    <h3>10. Complete Loop Elimination &nbsp;🏆</h3>
+                    <span class="badge badge-green">265t.optimized</span>
+                </div>
+                <div class="opt-card-body">
+                    <div class="code-panel">
+                        <div class="code-panel-label before">Before — Two Loops (2,000,000 iterations)</div>
+<pre>
+<span class="hl-cmt">// LOOP 1: 1,000,000 iterations</span>
+<span class="hl-removed">for (i = 0; i &lt; 1000000; i++) {</span>
+<span class="hl-removed">    total_balance += 158;</span>           <span class="hl-cmt">// constant per iteration</span>
+<span class="hl-removed">    total_balance += GLOBAL_FEE;</span>    <span class="hl-cmt">// invariant per iteration</span>
+<span class="hl-removed">}</span>
+
+<span class="hl-cmt">// LOOP 2: 1,000,000 iterations</span>
+<span class="hl-removed">for (j = 0; j &lt; 1000000; j++) {</span>
+<span class="hl-removed">    total_balance += 100;</span>           <span class="hl-cmt">// process_batch(10,5) folded</span>
+<span class="hl-removed">}</span>
+</pre>
+                    </div>
+                    <div class="code-panel">
+                        <div class="code-panel-label after">After — Pure Arithmetic (0 iterations!)</div>
+<pre>
+<span class="hl-cmt">// Loop 1 → closed-form multiplication</span>
+_16 = _2 + <span class="hl-num">158</span>;
+_6 = (unsigned long long) _16;
+<span class="hl-added">_5 = _6 * 1000000;</span>         <span class="hl-cmt">// (GLOBAL_FEE + 158) × 1M</span>
+total_balance_21 = (long long) _5;
+
+<span class="hl-cmt">// Loop 2 → constant multiplication</span>
+<span class="hl-added">total_balance_19 =</span>
+  <span class="hl-added">total_balance_21 + 100000000;</span>  <span class="hl-cmt">// 100 × 1M</span>
+</pre>
+                    </div>
+                </div>
+                <div class="opt-card-footer">
+                    <strong>Pass:</strong> 265t.optimized &nbsp;·&nbsp; GCC recognized both loops add constants per iteration. Replaced with <strong style="color:var(--green);">closed-form arithmetic</strong>:
+                    <code>(GLOBAL_FEE + 158) × 1,000,000 + 100,000,000</code>. From <strong>2M iterations → 0 iterations + 5 instructions</strong>.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==================== PASS-BY-PASS FOR main() ==================== -->
+    <div class="section">
+        <div class="section-title">
+            <div class="icon" style="background:rgba(251,146,60,0.15);">📐</div>
+            Pass-by-Pass Transformation of <code style="color:var(--accent);">main()</code>
+        </div>
+
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Pass</th>
+                    <th>File</th>
+                    <th>Key Change in main()</th>
+                    <th>What Happened</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>1. Initial GIMPLE</strong></td>
+                    <td><code>006t.gimple</code></td>
+                    <td>Raw lowered C → GIMPLE with all variables</td>
+                    <td>Direct translation with temporaries; 2 loops, all local vars present</td>
+                </tr>
+                <tr>
+                    <td><strong>2. CFG Build</strong></td>
+                    <td><code>015t.cfg</code></td>
+                    <td>Structured into basic blocks (<code>bb2</code>–<code>bb10</code>)</td>
+                    <td>Control flow graph constructed; loop headers/latches identified</td>
+                </tr>
+                <tr>
+                    <td><strong>3. Early Inlining</strong></td>
+                    <td><code>032t.einline</code></td>
+                    <td><code>apply_tax(33)</code> <span class="arrow-r">→</span> <code>38</code></td>
+                    <td>Function body inlined; <code>33 + 5 = 38</code> computed at compile time</td>
+                </tr>
+                <tr>
+                    <td><strong>4. Const Propagation</strong></td>
+                    <td><code>035t.ccp1</code></td>
+                    <td>13 vars <span class="arrow-r">→</span> <code>total_balance += 158</code></td>
+                    <td>
+                        <code>base_val=25, step1=40, step2=40, final_step=40, static_bias=80</code><br>
+                        Chain folded: <code>40+38+80 = 158</code>; <code>process_batch(10,5) = 100</code>; dead vars removed
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>5. Forward Prop</strong></td>
+                    <td><code>036t.forwprop1</code></td>
+                    <td><code>i * 4</code> <span class="arrow-r">→</span> <code>i &lt;&lt; 2</code></td>
+                    <td>Strength reduction: multiplication replaced with bitwise shift</td>
+                </tr>
+                <tr>
+                    <td><strong>6. Redundancy Elim</strong></td>
+                    <td><code>041t.fre1</code></td>
+                    <td>Redundant expressions cleaned up</td>
+                    <td>Full Redundancy Elimination pass; no major structural change here</td>
+                </tr>
+                <tr>
+                    <td><strong>7. Value Range</strong></td>
+                    <td><code>042t.evrp</code></td>
+                    <td><code>if(i &lt; -1)</code> <span class="arrow-r">→</span> folded to <code>false</code></td>
+                    <td>EVRP proves <code>i ∈ [0, 1M]</code>; dead branch + bb4 removed; also <code>scaled_idx</code> removed</td>
+                </tr>
+                <tr>
+                    <td><strong>8. IPA Const Prop</strong></td>
+                    <td><code>085i.cp</code></td>
+                    <td>Inter-procedural analysis complete</td>
+                    <td>Confirms no external modifications; validates constant propagation decisions</td>
+                </tr>
+                <tr>
+                    <td><strong>9. Copy Prop</strong></td>
+                    <td><code>127t.copyprop1</code></td>
+                    <td>Remaining copy chains cleaned</td>
+                    <td>Any remaining <code>x = y</code> patterns replaced with direct references</td>
+                </tr>
+                <tr>
+                    <td><strong>10. Loop Inv Motion</strong></td>
+                    <td><code>148t.lim2</code></td>
+                    <td><code>GLOBAL_FEE</code> load <span class="arrow-r">→</span> hoisted before loop</td>
+                    <td>Loop-invariant memory access moved out; enables loop body to be pure arithmetic</td>
+                </tr>
+                <tr style="background: rgba(74,222,128,0.05);">
+                    <td><strong style="color:var(--green);">11. Final Optimized</strong></td>
+                    <td><code style="color:var(--green);">265t.optimized</code></td>
+                    <td><strong style="color:var(--green);">Both loops eliminated entirely</strong></td>
+                    <td>
+                        Loop 1: <code>(GLOBAL_FEE + 158) × 1,000,000</code><br>
+                        Loop 2: <code>+ 100,000,000</code><br>
+                        <strong>Result: 5 instructions replace 2M iterations</strong>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ==================== OVERALL SUMMARY ==================== -->
+    <div class="section">
+        <div class="section-title">
+            <div class="icon" style="background:rgba(74,222,128,0.15);">📊</div>
+            Overall Optimization Summary
+        </div>
+
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Technique</th>
+                    <th>GCC Pass</th>
+                    <th>Before</th>
+                    <th></th>
+                    <th>After</th>
+                    <th>Impact</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><strong>Function Inlining</strong></td>
+                    <td><code>032t.einline</code></td>
+                    <td><code>apply_tax(33)</code></td>
+                    <td class="arrow-r">→</td>
+                    <td><code>38</code></td>
+                    <td><span class="badge badge-green">Call removed</span></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><strong>Constant Propagation</strong></td>
+                    <td><code>035t.ccp1</code></td>
+                    <td><code>base_val, step1, step2...</code></td>
+                    <td class="arrow-r">→</td>
+                    <td><code>158</code></td>
+                    <td><span class="badge badge-accent">6 vars → 1 const</span></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td><strong>Constant Folding</strong></td>
+                    <td><code>035t.ccp1</code></td>
+                    <td><code>process_batch(10, 5)</code></td>
+                    <td class="arrow-r">→</td>
+                    <td><code>100</code></td>
+                    <td><span class="badge badge-accent">Call → constant</span></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td><strong>Copy Propagation</strong></td>
+                    <td><code>035t.ccp1</code></td>
+                    <td><code>step2=step1, final=step2</code></td>
+                    <td class="arrow-r">→</td>
+                    <td>Direct use</td>
+                    <td><span class="badge badge-purple">−3 copies</span></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td><strong>Dead Code Elimination</strong></td>
+                    <td><code>035t.ccp1</code></td>
+                    <td><code>p, q, check1, check2, temp_audit...</code></td>
+                    <td class="arrow-r">→</td>
+                    <td>Removed</td>
+                    <td><span class="badge badge-red">−7 dead vars</span></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td><strong>CSE</strong></td>
+                    <td><code>035t.ccp1</code></td>
+                    <td><code>p * q</code> computed twice</td>
+                    <td class="arrow-r">→</td>
+                    <td>Eliminated (dead)</td>
+                    <td><span class="badge badge-yellow">−2 ops</span></td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td><strong>Strength Reduction</strong></td>
+                    <td><code>036t.forwprop1</code></td>
+                    <td><code>i * 4</code></td>
+                    <td class="arrow-r">→</td>
+                    <td><code>i &lt;&lt; 2</code></td>
+                    <td><span class="badge badge-orange">mul → shift</span></td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td><strong>Unreachable Code</strong></td>
+                    <td><code>042t.evrp</code></td>
+                    <td><code>if (i &lt; -1) { +999 }</code></td>
+                    <td class="arrow-r">→</td>
+                    <td>Removed</td>
+                    <td><span class="badge badge-red">−1 branch</span></td>
+                </tr>
+                <tr>
+                    <td>9</td>
+                    <td><strong>Function Cloning</strong></td>
+                    <td><code>085i.cp</code></td>
+                    <td><code>apply_tax(33)</code>, <code>process_batch(10,5)</code></td>
+                    <td class="arrow-r">→</td>
+                    <td>Specialized &amp; folded</td>
+                    <td><span class="badge badge-pink">Cloned + inlined</span></td>
+                </tr>
+                <tr>
+                    <td>10</td>
+                    <td><strong>Loop Invariant Motion</strong></td>
+                    <td><code>148t.lim2</code></td>
+                    <td><code>GLOBAL_FEE</code> inside loop</td>
+                    <td class="arrow-r">→</td>
+                    <td>Hoisted out</td>
+                    <td><span class="badge badge-teal">−1M loads</span></td>
+                </tr>
+                <tr style="background: rgba(74,222,128,0.05);">
+                    <td><strong>★</strong></td>
+                    <td><strong style="color:var(--green);">Loop Elimination</strong></td>
+                    <td><code style="color:var(--green);">265t.optimized</code></td>
+                    <td><strong>2 loops × 1M iters</strong></td>
+                    <td class="arrow-r">→</td>
+                    <td><strong style="color:var(--green);">5 instructions</strong></td>
+                    <td><span class="badge badge-green">−2M iterations</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ==================== SOURCE CODE ==================== -->
+    <div class="section">
+        <div class="section-title">
+            <div class="icon" style="background:rgba(244,114,182,0.15);">📄</div>
+            Original C Source Code
+        </div>
+
+        <div class="wide-card">
+            <div class="wide-card-header">
+                <h3>code.c</h3>
+                <span class="badge badge-pink">Source</span>
+            </div>
+            <div class="wide-card-body">
+<pre><span class="line-num"> 1</span><span class="hl-kw">#include</span> &lt;stdio.h&gt;
+<span class="line-num"> 2</span><span class="hl-type">int</span> GLOBAL_FEE = <span class="hl-num">15</span>;
+<span class="line-num"> 3</span>
+<span class="line-num"> 4</span><span class="hl-type">int</span> <span class="hl-kw">apply_tax</span>(<span class="hl-type">int</span> amount) {
+<span class="line-num"> 5</span>    <span class="hl-kw">return</span> amount + <span class="hl-num">5</span>;                         <span class="hl-cmt">// inlining candidate</span>
+<span class="line-num"> 6</span>}
+<span class="line-num"> 7</span>
+<span class="line-num"> 8</span><span class="hl-type">int</span> <span class="hl-kw">process_batch</span>(<span class="hl-type">int</span> count, <span class="hl-type">int</span> rate) {
+<span class="line-num"> 9</span>    <span class="hl-kw">return</span> (count * rate) + (count * rate);   <span class="hl-cmt">// CSE candidate → count*rate*2</span>
+<span class="line-num">10</span>}
+<span class="line-num">11</span>
+<span class="line-num">12</span><span class="hl-type">int</span> <span class="hl-kw">main</span>() {
+<span class="line-num">13</span>    <span class="hl-type">long long</span> total_balance = <span class="hl-num">0</span>;
+<span class="line-num">14</span>    <span class="hl-type">int</span> base_val = <span class="hl-num">25</span>;                        <span class="hl-cmt">// constant propagation</span>
+<span class="line-num">15</span>    <span class="hl-kw">for</span> (<span class="hl-type">int</span> i = <span class="hl-num">0</span>; i &lt; <span class="hl-num">1000000</span>; i++) {
+<span class="line-num">16</span>        <span class="hl-type">int</span> step1 = base_val + <span class="hl-num">15</span>;             <span class="hl-cmt">// constant folding → 40</span>
+<span class="line-num">17</span>        <span class="hl-type">int</span> step2 = step1;                      <span class="hl-cmt">// copy propagation</span>
+<span class="line-num">18</span>        <span class="hl-type">int</span> final_step = step2;                 <span class="hl-cmt">// copy propagation</span>
+<span class="line-num">19</span>
+<span class="line-num">20</span>        <span class="hl-type">int</span> scaled_idx = i * <span class="hl-num">4</span>;                <span class="hl-cmt">// strength reduction → i &lt;&lt; 2</span>
+<span class="line-num">21</span>        <span class="hl-type">int</span> normalized = (scaled_idx * <span class="hl-num">1</span>) + <span class="hl-num">0</span>; <span class="hl-cmt">// algebraic simplify + dead</span>
+<span class="line-num">22</span>
+<span class="line-num">23</span>        <span class="hl-type">int</span> p = <span class="hl-num">12</span>, q = <span class="hl-num">8</span>;
+<span class="line-num">24</span>        <span class="hl-type">int</span> check1 = p * q;                     <span class="hl-cmt">// CSE + dead code</span>
+<span class="line-num">25</span>        <span class="hl-type">int</span> check2 = p * q;                     <span class="hl-cmt">// CSE + dead code</span>
+<span class="line-num">26</span>
+<span class="line-num">27</span>        <span class="hl-type">int</span> temp_audit = <span class="hl-num">500</span>;                   <span class="hl-cmt">// dead code</span>
+<span class="line-num">28</span>        <span class="hl-kw">if</span> (i &lt; <span class="hl-num">-1</span>) {                           <span class="hl-cmt">// unreachable (i ≥ 0 always)</span>
+<span class="line-num">29</span>            total_balance += <span class="hl-num">999</span>;
+<span class="line-num">30</span>        }
+<span class="line-num">31</span>
+<span class="line-num">32</span>        <span class="hl-type">int</span> static_bias = <span class="hl-num">40</span> * <span class="hl-num">2</span>;              <span class="hl-cmt">// constant folding → 80</span>
+<span class="line-num">33</span>        total_balance += apply_tax(<span class="hl-num">33</span>)          <span class="hl-cmt">// inlined → 38</span>
+<span class="line-num">34</span>                       + final_step            <span class="hl-cmt">// → 40</span>
+<span class="line-num">35</span>                       + static_bias;           <span class="hl-cmt">// → 80   total = 158</span>
+<span class="line-num">36</span>        total_balance += GLOBAL_FEE;             <span class="hl-cmt">// loop invariant</span>
+<span class="line-num">37</span>    }
+<span class="line-num">38</span>
+<span class="line-num">39</span>    <span class="hl-kw">for</span> (<span class="hl-type">int</span> j = <span class="hl-num">0</span>; j &lt; <span class="hl-num">1000000</span>; j++) {
+<span class="line-num">40</span>        total_balance += process_batch(<span class="hl-num">10</span>, <span class="hl-num">5</span>); <span class="hl-cmt">// constant folded → 100</span>
+<span class="line-num">41</span>    }
+<span class="line-num">42</span>
+<span class="line-num">43</span>    printf(<span class="hl-num">"Final Balance: %lld\n"</span>, total_balance);
+<span class="line-num">44</span>    <span class="hl-kw">return</span> <span class="hl-num">0</span>;
+<span class="line-num">45</span>}</pre>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Footer -->
+<div style="text-align:center; padding:2rem; border-top:1px solid var(--border); color:var(--muted); font-size:0.82rem;">
+    Generated from <strong style="color:var(--accent);">GCC</strong> GIMPLE dumps (006t → 265t) &nbsp;·&nbsp; code.c &nbsp;·&nbsp; 11 Optimization Passes Analyzed
+</div>
+
+</body>
+</html>

@@ -1,0 +1,134 @@
+public class Revised.FinancialOptimizer extends java.lang.Object
+{
+    static double taxRate;
+
+    public void <init>()
+    {
+        Revised.FinancialOptimizer r0;
+
+        r0 := @this: Revised.FinancialOptimizer;
+
+        specialinvoke r0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    static double applyTax(double)
+    {
+        double d0, $d1, $d2;
+
+        d0 := @parameter0: double;
+
+        $d1 = <Revised.FinancialOptimizer: double taxRate>;
+
+        $d2 = d0 * $d1;
+
+        return $d2;
+    }
+
+    static double calculateRisk(double)
+    {
+        double d0, $d1;
+
+        d0 := @parameter0: double;
+
+        $d1 = d0 * d0;
+
+        return $d1;
+    }
+
+    static double portfolioOptimizer(double, double)
+    {
+        int $i0, $i1, i2;
+        double d0, d1, d2, d3, $d4, d5, d6, $d7, $d8, $d9, $d10, $d11, $d12, $d13, d14, d15, d16, d17, d18, d19, d20, d21;
+
+        d0 := @parameter0: double;
+
+        d1 := @parameter1: double;
+
+        d16 = d0 * 1.0;
+
+        d17 = d16 + 0.0;
+
+        d2 = d0 + d1;
+
+        d3 = d0 + d1;
+
+        $d4 = d0 + d1;
+
+        d5 = $d4 * 1.0;
+
+        d6 = staticinvoke <Revised.FinancialOptimizer: double calculateRisk(double)>(5.0);
+
+        d18 = 0.0;
+
+        i2 = 0;
+
+     label1:
+        if i2 >= 10 goto label2;
+
+        $i0 = i2 * 100;
+
+        $d13 = (double) $i0;
+
+        d14 = staticinvoke <Revised.FinancialOptimizer: double applyTax(double)>($d13);
+
+        d19 = d18 + d14;
+
+        $i1 = i2 * 1;
+
+        d15 = (double) $i1;
+
+        d18 = d19 + d15;
+
+        i2 = i2 + 1;
+
+        goto label1;
+
+     label2:
+        $d7 = d17 + d2;
+
+        $d8 = $d7 + d3;
+
+        $d9 = $d8 + d5;
+
+        $d10 = $d9 + 1000.0;
+
+        d20 = $d10 + 100.0;
+
+        $d11 = d20 + d6;
+
+        $d12 = $d11 + d18;
+
+        d21 = $d12 + 200.0;
+
+        return d21;
+    }
+
+    public static void main(java.lang.String[])
+    {
+        java.io.PrintStream $r0;
+        java.lang.String[] r2;
+        java.lang.String $r1;
+        double d0;
+
+        r2 := @parameter0: java.lang.String[];
+
+        d0 = staticinvoke <Revised.FinancialOptimizer: double portfolioOptimizer(double,double)>(5000.0, 3000.0);
+
+        $r0 = <java.lang.System: java.io.PrintStream out>;
+
+        $r1 = dynamicinvoke "makeConcatWithConstants" <java.lang.String (double)>(d0) <java.lang.invoke.StringConcatFactory: java.lang.invoke.CallSite makeConcatWithConstants(java.lang.invoke.MethodHandles$Lookup,java.lang.String,java.lang.invoke.MethodType,java.lang.String,java.lang.Object[])>("Optimized Financial Return: \u0001");
+
+        virtualinvoke $r0.<java.io.PrintStream: void println(java.lang.String)>($r1);
+
+        return;
+    }
+
+    static void <clinit>()
+    {
+        <Revised.FinancialOptimizer: double taxRate> = 0.1;
+
+        return;
+    }
+}

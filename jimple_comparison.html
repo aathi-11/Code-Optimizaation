@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jimple Code Optimization Comparison</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+            --green: #4ade80;
+            --red: #f87171;
+            --yellow: #fbbf24;
+            --purple: #a78bfa;
+            --orange: #fb923c;
+            --pink: #f472b6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 2rem 0;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .header p {
+            color: var(--muted);
+            font-size: 1rem;
+        }
+        .header .file-badge {
+            display: inline-block;
+            margin-top: 0.75rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 0.35rem 1rem;
+            border-radius: 999px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            padding: 1.5rem 2rem;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat .num {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+        .stat .label {
+            font-size: 0.8rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .stat.green .num { color: var(--green); }
+        .stat.red .num { color: var(--red); }
+        .stat.yellow .num { color: var(--yellow); }
+        .stat.purple .num { color: var(--purple); }
+        .stat.accent .num { color: var(--accent); }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 2.5rem;
+        }
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-title .icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        /* Optimization Cards */
+        .opt-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+        .opt-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .opt-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .opt-card-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .opt-card-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .badge-green { background: rgba(74,222,128,0.15); color: var(--green); }
+        .badge-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
+        .badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
+        .badge-purple { background: rgba(167,139,250,0.15); color: var(--purple); }
+        .badge-accent { background: rgba(56,189,248,0.15); color: var(--accent); }
+        .badge-orange { background: rgba(251,146,60,0.15); color: var(--orange); }
+        .badge-pink { background: rgba(244,114,182,0.15); color: var(--pink); }
+
+        .opt-card-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+        .code-panel {
+            padding: 1rem 1.25rem;
+            position: relative;
+        }
+        .code-panel:first-child {
+            border-right: 1px solid var(--border);
+        }
+        .code-panel-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .code-panel-label.before { color: var(--red); }
+        .code-panel-label.after { color: var(--green); }
+
+        pre {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.82rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .hl-removed {
+            background: rgba(248, 113, 113, 0.12);
+            color: var(--red);
+            border-radius: 3px;
+            padding: 1px 3px;
+        }
+        .hl-added {
+            background: rgba(74, 222, 128, 0.12);
+            color: var(--green);
+            border-radius: 3px;
+            padding: 1px 3px;
+        }
+        .hl-keyword {
+            color: var(--purple);
+        }
+        .hl-type {
+            color: var(--accent);
+        }
+        .hl-num {
+            color: var(--orange);
+        }
+        .hl-comment {
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        .opt-card-footer {
+            padding: 0.75rem 1.25rem;
+            border-top: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.4);
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+        .opt-card-footer strong {
+            color: var(--text);
+        }
+
+        /* Full Code Comparison */
+        .full-compare {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        .full-code-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .full-code-header {
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .full-code-header.before-h { color: var(--red); }
+        .full-code-header.after-h { color: var(--green); }
+        .full-code-header .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+        .full-code-header.before-h .dot { background: var(--red); }
+        .full-code-header.after-h .dot { background: var(--green); }
+
+        .full-code-body {
+            padding: 1.25rem;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+        .full-code-body pre {
+            font-size: 0.8rem;
+            line-height: 1.75;
+        }
+        .line-num {
+            display: inline-block;
+            width: 30px;
+            text-align: right;
+            margin-right: 12px;
+            color: #475569;
+            user-select: none;
+            font-size: 0.75rem;
+        }
+
+        /* Method Tabs */
+        .method-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .method-tab {
+            padding: 0.4rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .method-tab:hover, .method-tab.active {
+            background: rgba(56,189,248,0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Summary Table */
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .summary-table th {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+        }
+        .summary-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.88rem;
+        }
+        .summary-table tr:last-child td { border-bottom: none; }
+        .summary-table tr:hover td { background: rgba(56,189,248,0.03); }
+
+        .arrow { color: var(--accent); font-weight: bold; margin: 0 0.25rem; }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .opt-card-body { grid-template-columns: 1fr; }
+            .code-panel:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+            .full-compare { grid-template-columns: 1fr; }
+            .opt-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>Jimple IR — Optimization Comparison</h1>
+        <p>Soot Framework · Before vs After Optimization Passes</p>
+        <div class="file-badge">Revised.FinancialOptimizer</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+        <div class="stat accent">
+            <div class="num">11</div>
+            <div class="label">Optimizations Demonstrated</div>
+        </div>
+        <div class="stat green">
+            <div class="num">5</div>
+            <div class="label">Methods Analyzed</div>
+        </div>
+        <div class="stat yellow">
+            <div class="num">3</div>
+            <div class="label">Redundant Expressions</div>
+        </div>
+        <div class="stat red">
+            <div class="num">2</div>
+            <div class="label">Dead Code Segments</div>
+        </div>
+        <div class="stat purple">
+            <div class="num">1</div>
+            <div class="label">Loop Optimized</div>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <!-- ========== OPTIMIZATION CARDS ========== -->
+        <div class="section">
+            <div class="section-title">
+                <div class="icon" style="background:rgba(56,189,248,0.15);">⚡</div>
+                Optimization Techniques — Side by Side
+            </div>
+
+            <div class="opt-grid">
+
+                <!-- 1. Constant Propagation -->
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>1. Constant Propagation</h3>
+                        <span class="badge badge-accent">Const Prop</span>
+                    </div>
+                    <div class="opt-card-body">
+                        <div class="code-panel">
+                            <div class="code-panel-label before">Before (Java)</div>
+<pre>
+<span class="hl-keyword">double</span> baseReturn = <span class="hl-num">1000</span>;
+<span class="hl-keyword">double</span> bonus = <span class="hl-num">200</span>;
+...
+finalProfit = ... + <span class="hl-removed">copiedValue</span>
+             + ... + <span class="hl-removed">extraBonus</span>;
+</pre>
+                        </div>
+                        <div class="code-panel">
+                            <div class="code-panel-label after">After (Jimple)</div>
+<pre>
+$stack36 = $stack35 + <span class="hl-added">1000.0</span>;
+...
+l30 = $stack38 + <span class="hl-added">200.0</span>;
+<span class="hl-comment">// Variables replaced by their</span>
+<span class="hl-comment">// constant values directly</span>
+</pre>
+                        </div>
+                    </div>
+                    <div class="opt-card-footer">
+                        <strong>Rule:</strong> When a variable is assigned a constant value and never reassigned, all uses are replaced with the constant literal. <code>baseReturn</code> → <code>1000.0</code>, <code>bonus</code> → <code>200.0</code>.
+                    </div>
+                </div>
+
+                <!-- 2. Constant Folding -->
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>2. Constant Folding</h3>
+                        <span class="badge badge-accent">Folded</span>
+                    </div>
+                    <div class="opt-card-body">
+                        <div class="code-panel">
+                            <div class="code-panel-label before">Before (Java)</div>
+<pre>
+<span class="hl-keyword">double</span> foldedValue = <span class="hl-removed">50 + 50</span>;
+<span class="hl-comment">// Expression with constant operands</span>
+</pre>
+                        </div>
+                        <div class="code-panel">
+                            <div class="code-panel-label after">After (Jimple)</div>
+<pre>
+l30 = $stack36 + <span class="hl-added">100.0</span>;
+<span class="hl-comment">// 50 + 50 evaluated at compile time</span>
+<span class="hl-comment">// Result 100.0 used directly</span>
+</pre>
+                        </div>
+                    </div>
+                    <div class="opt-card-footer">
+                        <strong>Rule:</strong> Expressions involving only constants are evaluated at compile time. <code>50 + 50</code> is folded to <code>100.0</code> — no runtime addition needed.
+                    </div>
+                </div>
+
+                <!-- 3. Copy Propagation -->
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>3. Copy Propagation</h3>
+                        <span class="badge badge-orange">Propagated</span>
+                    </div>
+                    <div class="opt-card-body">
+                        <div class="code-panel">
+                            <div class="code-panel-label before">Before (Java)</div>
+<pre>
+<span class="hl-keyword">double</span> copiedValue = <span class="hl-removed">baseReturn</span>;
+...
+<span class="hl-keyword">double</span> extraBonus = <span class="hl-removed">bonus</span>;
+<span class="hl-comment">// Variables copy another variable</span>
+</pre>
+                        </div>
+                        <div class="code-panel">
+                            <div class="code-panel-label after">After (Jimple)</div>
+<pre>
+<span class="hl-comment">// copiedValue and extraBonus</span>
+<span class="hl-comment">// are eliminated entirely.</span>
+<span class="hl-comment">// Their source values (1000.0,</span>
+<span class="hl-comment">// 200.0) are used directly.</span>
+<span class="hl-added">✓ Copies propagated away</span>
+</pre>
+                        </div>
+                    </div>
+                    <div class="opt-card-footer">
+                        <strong>Rule:</strong> When a variable simply copies another (<code>copiedValue = baseReturn</code>), all uses of the copy are replaced with the original value. Combined with constant propagation, both become literals.
+                    </div>
+                </div>
+
+                <!-- 4. Algebraic Simplification -->
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>4. Algebraic Simplification</h3>
+                        <span class="badge badge-green">Simplified</span>
+                    </div>
+                    <div class="opt-card-body">
+                        <div class="code-panel">
+                            <div class="code-panel-label before">Before (Jimple)</div>
+<pre>
+l12 = l0 * <span class="hl-removed">1.0</span>;
+l12 = l12 + <span class="hl-removed">0.0</span>;
+l20 = $stack32 * <span class="hl-removed">1.0</span>;
+<span class="hl-comment">// ×1 and +0 are identity ops</span>
+</pre>
+                        </div>
+                        <div class="code-panel">
+                            <div class="code-panel-label after">After (Ideal)</div>
+<pre>
+d16 = <span class="hl-added">d0</span>;
+d17 = <span class="hl-added">d16</span>;
+d5 = <span class="hl-added">$d4</span>;
+<span class="hl-comment">// Identity operations removed</span>
+</pre>
+                        </div>
+                    </div>
+                    <div class="opt-card-footer">
+                        <strong>Rule:</strong> x × 1 = x, x + 0 = x — Redundant identity operations are eliminated, saving floating-point computations.
+                    </div>
+                </div>
+
+                <!-- 5. Dead Code Elimination -->
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>5. Dead Code Elimination</h3>
+                        <span class="badge badge-red">Removed</span>
+                    </div>
+                    <div class="opt-card-body">
+                        <div class="code-panel">
+                            <div class="code-panel-label before">Before (Java)</div>
+<pre>
+<span class="hl-removed">double unusedVariable = 999;</span>
+<span class="hl-removed">double deadInvestment = 500;</span>
+<span class="hl-comment">// Variables assigned but never read</span>
+</pre>
+                        </div>
+                        <div class="code-panel">
+                            <div class="code-panel-label after">After (Jimple)</div>
+<pre>
+<span class="hl-comment">// Both variables completely</span>
+<span class="hl-comment">// eliminated from the IR.</span>
+<span class="hl-comment">// No trace in Jimple output.</span>
+<span class="hl-added">✓ Removed by javac + Soot</span>
+</pre>
+                        </div>
+                    </div>
+                    <div class="opt-card-footer">
+                        <strong>Rule:</strong> Variables that are assigned but never read contribute no useful work — they are eliminated entirely from the generated code.
+                    </div>
+                </div>
+
+                <!-- 6. Unreachable Code Elimination -->
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>6. Unreachable Code Elimination</h3>
+                        <span class="badge badge-red">Removed</span>
+                    </div>
+                    <div class="opt-card-body">
+                        <div class="code-panel">
+                            <div class="code-panel-label before">Before (Java)</div>
+<pre>
+<span class="hl-removed">if (false) {</span>
+<span class="hl-removed">    result = result + 10000;</span>
+<span class="hl-removed">}</span>
+<span class="hl-comment">// Condition is always false</span>
+</pre>
+                        </div>
+                        <div class="code-panel">
+                            <div class="code-panel-label after">After (Jimple)</div>
+<pre>
+<span class="hl-comment">// Entire if-block is gone.</span>
+<span class="hl-comment">// No branch or guarded code</span>
+<span class="hl-comment">// appears in the Jimple IR.</span>
+<span class="hl-added">✓ Removed by javac</span>
+</pre>
+                        </div>
+                    </div>
+                    <div class="opt-card-footer">
+                        <strong>Rule:</strong> <code>if(false)</code> is statically known to be unreachable — the entire block is pruned at compile time, removing dead branches.
+                    </div>
+                </div>
+
+                <!-- 7. Common Subexpression Elimination -->
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>7. Common Subexpression Elimination</h3>
+                        <span class="badge badge-yellow">CSE</span>
+                    </div>
+                    <div class="opt-card-body">
+                        <div class="code-panel">
+                            <div class="code-panel-label before">Before (Jimple)</div>
+<pre>
+l16 = <span class="hl-removed">l0 + l2</span>;
+l18 = <span class="hl-removed">l0 + l2</span>;
+$stack32 = <span class="hl-removed">l0 + l2</span>;
+<span class="hl-comment">// Same expression computed 3 times</span>
+</pre>
+                        </div>
+                        <div class="code-panel">
+                            <div class="code-panel-label after">After (Ideal)</div>
+<pre>
+d2 = <span class="hl-added">d0 + d1</span>;
+d3 = <span class="hl-added">d2</span>;        <span class="hl-comment">// reuse d2</span>
+$d4 = <span class="hl-added">d2</span>;       <span class="hl-comment">// reuse d2</span>
+<span class="hl-comment">// Compute once, reuse result</span>
+</pre>
+                        </div>
+                    </div>
+                    <div class="opt-card-footer">
+                        <strong>Opportunity:</strong> <code>stocks + bonds</code> is computed 3 times with identical operands. CSE computes it once and reuses the result, saving 2 addition operations.
+                    </div>
+                </div>
+
+                <!-- 8. Strength Reduction -->
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>8. Strength Reduction</h3>
+                        <span class="badge badge-purple">Loop Opt</span>
+                    </div>
+                    <div class="opt-card-body">
+                        <div class="code-panel">
+                            <div class="code-panel-label before">Before (Jimple)</div>
+<pre>
+<span class="hl-comment">// Inside loop (10 iterations):</span>
+$stack41 = l26 * <span class="hl-removed">1</span>;
+l29 = (double) $stack41;
+l24 = l24 + l29;
+</pre>
+                        </div>
+                        <div class="code-panel">
+                            <div class="code-panel-label after">After (Ideal)</div>
+<pre>
+<span class="hl-comment">// Multiplication replaced:</span>
+$i1 = <span class="hl-added">i2</span>;
+d15 = (double) $i1;
+d18 = d19 + d15;
+<span class="hl-comment">// year * 1 → year</span>
+</pre>
+                        </div>
+                    </div>
+                    <div class="opt-card-footer">
+                        <strong>Rule:</strong> Expensive operations inside loops are replaced with cheaper equivalents. <code>year * 1</code> (multiplication) is reduced to just <code>year</code> (direct use), saving 10 multiplications across all iterations.
+                    </div>
+                </div>
+
+                <!-- 9. Function Inlining -->
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>9. Function Inlining</h3>
+                        <span class="badge badge-pink">Inlining</span>
+                    </div>
+                    <div class="opt-card-body">
+                        <div class="code-panel">
+                            <div class="code-panel-label before">Before (Jimple)</div>
+<pre>
+l27 = staticinvoke <span class="hl-removed">applyTax</span>($stack40);
+l22 = staticinvoke <span class="hl-removed">calculateRisk</span>(5.0);
+<span class="hl-comment">// Function call overhead each time</span>
+</pre>
+                        </div>
+                        <div class="code-panel">
+                            <div class="code-panel-label after">After (Inlined)</div>
+<pre>
+<span class="hl-comment">// applyTax body inlined:</span>
+l27 = <span class="hl-added">$stack40 * taxRate</span>;
+<span class="hl-comment">// calculateRisk body inlined:</span>
+l22 = <span class="hl-added">5.0 * 5.0</span>;
+<span class="hl-comment">// No function call overhead</span>
+</pre>
+                        </div>
+                    </div>
+                    <div class="opt-card-footer">
+                        <strong>Rule:</strong> Small methods like <code>applyTax()</code> and <code>calculateRisk()</code> can be inlined — their body replaces the call site, eliminating call/return overhead. Soot's <code>wjop.si</code> pass handles this.
+                    </div>
+                </div>
+
+                <!-- 10. Function Cloning -->
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>10. Function Cloning</h3>
+                        <span class="badge badge-orange">Cloned</span>
+                    </div>
+                    <div class="opt-card-body">
+                        <div class="code-panel">
+                            <div class="code-panel-label before">Before (Jimple)</div>
+<pre>
+<span class="hl-comment">// Generic calculateRisk method:</span>
+<span class="hl-keyword">static double</span> <span class="hl-removed">calculateRisk</span>(double)
+{
+    l0 := @parameter0: double;
+    $stack2 = <span class="hl-removed">l0 * l0</span>;
+    return $stack2;
+}
+<span class="hl-comment">// Called with constant: 5.0</span>
+l22 = staticinvoke calculateRisk(<span class="hl-num">5.0</span>);
+</pre>
+                        </div>
+                        <div class="code-panel">
+                            <div class="code-panel-label after">After (Cloned)</div>
+<pre>
+<span class="hl-comment">// Specialized clone for arg = 5.0:</span>
+<span class="hl-keyword">static double</span> <span class="hl-added">calculateRisk_clone</span>()
+{
+    $d1 = <span class="hl-added">5.0 * 5.0</span>;
+    return $d1;
+}
+<span class="hl-comment">// Call site updated:</span>
+l22 = staticinvoke <span class="hl-added">calculateRisk_clone</span>();
+<span class="hl-comment">// Parameter passing eliminated</span>
+</pre>
+                        </div>
+                    </div>
+                    <div class="opt-card-footer">
+                        <strong>Rule:</strong> When a function is called with a constant argument (<code>calculateRisk(5)</code>), a specialized clone is created with the constant hardcoded. This eliminates parameter passing and enables further constant folding (<code>5.0 * 5.0 → 25.0</code>).
+                    </div>
+                </div>
+
+                <!-- 11. Loop Optimization -->
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>11. Loop Optimization</h3>
+                        <span class="badge badge-purple">Loop Opt</span>
+                    </div>
+                    <div class="opt-card-body">
+                        <div class="code-panel">
+                            <div class="code-panel-label before">Before (Jimple)</div>
+<pre>
+l26 = <span class="hl-num">0</span>;
+<span class="hl-keyword">label1:</span>
+  <span class="hl-keyword">if</span> l26 >= <span class="hl-num">10</span> <span class="hl-keyword">goto</span> label2;
+  $stack39 = l26 * <span class="hl-num">100</span>;
+  $stack40 = (double) $stack39;
+  l27 = staticinvoke <span class="hl-removed">applyTax</span>($stack40);
+  l24 = l24 + l27;
+  <span class="hl-removed">$stack41 = l26 * 1;</span>
+  l26 = l26 + <span class="hl-num">1</span>;
+  <span class="hl-keyword">goto</span> label1;
+</pre>
+                        </div>
+                        <div class="code-panel">
+                            <div class="code-panel-label after">After (Optimized)</div>
+<pre>
+i2 = <span class="hl-num">0</span>;
+<span class="hl-keyword">label1:</span>
+  <span class="hl-keyword">if</span> i2 >= <span class="hl-num">10</span> <span class="hl-keyword">goto</span> label2;
+  $i0 = i2 * <span class="hl-num">100</span>;
+  $d13 = (double) $i0;
+  d14 = <span class="hl-added">$d13 * taxRate</span>;
+  d19 = d18 + d14;
+  <span class="hl-added">d18 = d19 + (double) i2;</span>
+  i2 = i2 + <span class="hl-num">1</span>;
+  <span class="hl-keyword">goto</span> label1;
+<span class="hl-comment">// Inlined + strength reduced</span>
+</pre>
+                        </div>
+                    </div>
+                    <div class="opt-card-footer">
+                        <strong>Rule:</strong> The <code>for</code> loop is lowered to label/goto in Jimple. Multiple optimizations apply inside: <strong>function inlining</strong> (<code>applyTax</code> body inlined), <strong>strength reduction</strong> (<code>year*1</code> → <code>year</code>), and <strong>loop-invariant code motion</strong> (invariant expressions hoisted out of the loop).
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ========== SUMMARY TABLE ========== -->
+        <div class="section">
+            <div class="section-title">
+                <div class="icon" style="background:rgba(251,191,36,0.15);">📊</div>
+                Optimization Summary
+            </div>
+            <table class="summary-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Optimization Technique</th>
+                        <th>Location</th>
+                        <th>Before</th>
+                        <th>After</th>
+                        <th>Impact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td><strong>Constant Propagation</strong></td>
+                        <td>portfolioOptimizer</td>
+                        <td><code>baseReturn = 1000; bonus = 200</code></td>
+                        <td><code>1000.0</code>, <code>200.0</code> used directly</td>
+                        <td><span class="badge badge-accent">−2 vars</span></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td><strong>Constant Folding</strong></td>
+                        <td>portfolioOptimizer</td>
+                        <td><code>50 + 50</code></td>
+                        <td><code>100.0</code> (literal)</td>
+                        <td><span class="badge badge-accent">−1 add op</span></td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td><strong>Copy Propagation</strong></td>
+                        <td>portfolioOptimizer</td>
+                        <td><code>copiedValue = baseReturn; extraBonus = bonus</code></td>
+                        <td>Copies eliminated</td>
+                        <td><span class="badge badge-orange">−2 copies</span></td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td><strong>Algebraic Simplification</strong></td>
+                        <td>portfolioOptimizer</td>
+                        <td><code>×1.0</code>, <code>+0.0</code> identity ops</td>
+                        <td>Direct assignment</td>
+                        <td><span class="badge badge-green">−3 ops</span></td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td><strong>Dead Code Elimination</strong></td>
+                        <td>portfolioOptimizer</td>
+                        <td><code>unusedVariable, deadInvestment</code></td>
+                        <td>Removed entirely</td>
+                        <td><span class="badge badge-red">−2 vars</span></td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td><strong>Unreachable Code Elimination</strong></td>
+                        <td>portfolioOptimizer</td>
+                        <td><code>if(false) { ... }</code></td>
+                        <td>Removed entirely</td>
+                        <td><span class="badge badge-red">−1 branch</span></td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td><strong>Common Subexpression Elimination</strong></td>
+                        <td>portfolioOptimizer</td>
+                        <td><code>l0 + l2</code> computed 3×</td>
+                        <td>Compute once, reuse</td>
+                        <td><span class="badge badge-yellow">−2 add ops</span></td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td><strong>Strength Reduction</strong></td>
+                        <td>Loop body</td>
+                        <td><code>l26 * 1</code> per iteration</td>
+                        <td><code>i2</code> (direct use)</td>
+                        <td><span class="badge badge-purple">−10 mul ops</span></td>
+                    </tr>
+                    <tr>
+                        <td>9</td>
+                        <td><strong>Function Inlining</strong></td>
+                        <td>portfolioOptimizer + loop</td>
+                        <td><code>applyTax()</code>, <code>calculateRisk()</code></td>
+                        <td>Method bodies inlined</td>
+                        <td><span class="badge badge-pink">−call overhead</span></td>
+                    </tr>
+                    <tr>
+                        <td>10</td>
+                        <td><strong>Function Cloning</strong></td>
+                        <td>calculateRisk</td>
+                        <td><code>calculateRisk(5.0)</code> generic method</td>
+                        <td>Specialized clone with const arg</td>
+                        <td><span class="badge badge-orange">−param + fold</span></td>
+                    </tr>
+                    <tr>
+                        <td>11</td>
+                        <td><strong>Loop Optimization</strong></td>
+                        <td>portfolioOptimizer loop</td>
+                        <td><code>for</code> with call + redundant mul</td>
+                        <td>Inlined + strength reduced</td>
+                        <td><span class="badge badge-purple">−overhead</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ========== FULL CODE COMPARISON ========== -->
+        <div class="section">
+            <div class="section-title">
+                <div class="icon" style="background:rgba(167,139,250,0.15);">📝</div>
+                Full Jimple Code — portfolioOptimizer Method
+            </div>
+
+            <div class="full-compare">
+                <!-- BEFORE -->
+                <div class="full-code-card">
+                    <div class="full-code-header before-h">
+                        <span class="dot"></span> Before Optimization
+                    </div>
+                    <div class="full-code-body">
+<pre><span class="line-num"> 1</span><span class="hl-keyword">static</span> <span class="hl-type">double</span> portfolioOptimizer(<span class="hl-type">double</span>, <span class="hl-type">double</span>)
+<span class="line-num"> 2</span>{
+<span class="line-num"> 3</span>    <span class="hl-type">int</span> $stack39, $stack41, l26;
+<span class="line-num"> 4</span>    <span class="hl-type">double</span> l0, l2, l16, l18, $stack32,
+<span class="line-num"> 5</span>       l20, l22, $stack33, $stack34,
+<span class="line-num"> 6</span>       $stack35, $stack36, $stack37,
+<span class="line-num"> 7</span>       $stack38, $stack40, l27, l29,
+<span class="line-num"> 8</span>       l12, l24, l30;
+<span class="line-num"> 9</span>
+<span class="line-num">10</span>    l0 := @parameter0: <span class="hl-type">double</span>;
+<span class="line-num">11</span>    l2 := @parameter1: <span class="hl-type">double</span>;
+<span class="line-num">12</span>
+<span class="line-num">13</span>    <span class="hl-removed">l12 = l0 * 1.0;</span>              <span class="hl-comment">// × 1</span>
+<span class="line-num">14</span>    <span class="hl-removed">l12 = l12 + 0.0;</span>             <span class="hl-comment">// + 0</span>
+<span class="line-num">15</span>
+<span class="line-num">16</span>    <span class="hl-removed">l16 = l0 + l2;</span>               <span class="hl-comment">// CSE #1</span>
+<span class="line-num">17</span>    <span class="hl-removed">l18 = l0 + l2;</span>               <span class="hl-comment">// CSE #2</span>
+<span class="line-num">18</span>    <span class="hl-removed">$stack32 = l0 + l2;</span>          <span class="hl-comment">// CSE #3</span>
+<span class="line-num">19</span>    <span class="hl-removed">l20 = $stack32 * 1.0;</span>        <span class="hl-comment">// × 1</span>
+<span class="line-num">20</span>
+<span class="line-num">21</span>    l22 = staticinvoke calculateRisk(<span class="hl-num">5.0</span>);
+<span class="line-num">22</span>    l24 = <span class="hl-num">0.0</span>;
+<span class="line-num">23</span>    l26 = <span class="hl-num">0</span>;
+<span class="line-num">24</span>
+<span class="line-num">25</span>  <span class="hl-keyword">label1:</span>
+<span class="line-num">26</span>    <span class="hl-keyword">if</span> l26 >= <span class="hl-num">10</span> <span class="hl-keyword">goto</span> label2;
+<span class="line-num">27</span>    $stack39 = l26 * <span class="hl-num">100</span>;
+<span class="line-num">28</span>    $stack40 = (<span class="hl-type">double</span>) $stack39;
+<span class="line-num">29</span>    l27 = staticinvoke applyTax($stack40);
+<span class="line-num">30</span>    l24 = l24 + l27;
+<span class="line-num">31</span>    <span class="hl-removed">$stack41 = l26 * 1;</span>          <span class="hl-comment">// × 1</span>
+<span class="line-num">32</span>    l29 = (<span class="hl-type">double</span>) $stack41;
+<span class="line-num">33</span>    l24 = l24 + l29;
+<span class="line-num">34</span>    l26 = l26 + <span class="hl-num">1</span>;
+<span class="line-num">35</span>    <span class="hl-keyword">goto</span> label1;
+<span class="line-num">36</span>
+<span class="line-num">37</span>  <span class="hl-keyword">label2:</span>
+<span class="line-num">38</span>    $stack33 = l12 + l16;
+<span class="line-num">39</span>    $stack34 = $stack33 + l18;
+<span class="line-num">40</span>    $stack35 = $stack34 + l20;
+<span class="line-num">41</span>    $stack36 = $stack35 + <span class="hl-num">1000.0</span>;
+<span class="line-num">42</span>    l30 = $stack36 + <span class="hl-num">100.0</span>;
+<span class="line-num">43</span>    $stack37 = l30 + l22;
+<span class="line-num">44</span>    $stack38 = $stack37 + l24;
+<span class="line-num">45</span>    l30 = $stack38 + <span class="hl-num">200.0</span>;
+<span class="line-num">46</span>    <span class="hl-keyword">return</span> l30;
+<span class="line-num">47</span>}</pre>
+                    </div>
+                </div>
+
+                <!-- AFTER -->
+                <div class="full-code-card">
+                    <div class="full-code-header after-h">
+                        <span class="dot"></span> After Optimization
+                    </div>
+                    <div class="full-code-body">
+<pre><span class="line-num"> 1</span><span class="hl-keyword">static</span> <span class="hl-type">double</span> portfolioOptimizer(<span class="hl-type">double</span>, <span class="hl-type">double</span>)
+<span class="line-num"> 2</span>{
+<span class="line-num"> 3</span>    <span class="hl-type">int</span> $i0, $i1, i2;
+<span class="line-num"> 4</span>    <span class="hl-type">double</span> d0, d1, d2, d3, $d4,
+<span class="line-num"> 5</span>       d5, d6, $d7, $d8, $d9,
+<span class="line-num"> 6</span>       $d10, $d11, $d12, $d13,
+<span class="line-num"> 7</span>       d14, d15, d16, d17, d18,
+<span class="line-num"> 8</span>       d19, d20, d21;
+<span class="line-num"> 9</span>
+<span class="line-num">10</span>    d0 := @parameter0: <span class="hl-type">double</span>;
+<span class="line-num">11</span>    d1 := @parameter1: <span class="hl-type">double</span>;
+<span class="line-num">12</span>
+<span class="line-num">13</span>    <span class="hl-added">d16 = d0 * 1.0;</span>              <span class="hl-comment">// can simplify</span>
+<span class="line-num">14</span>    <span class="hl-added">d17 = d16 + 0.0;</span>             <span class="hl-comment">// can simplify</span>
+<span class="line-num">15</span>
+<span class="line-num">16</span>    <span class="hl-added">d2 = d0 + d1;</span>                <span class="hl-comment">// CSE target</span>
+<span class="line-num">17</span>    <span class="hl-added">d3 = d0 + d1;</span>                <span class="hl-comment">// reuse d2</span>
+<span class="line-num">18</span>    <span class="hl-added">$d4 = d0 + d1;</span>               <span class="hl-comment">// reuse d2</span>
+<span class="line-num">19</span>    <span class="hl-added">d5 = $d4 * 1.0;</span>              <span class="hl-comment">// can simplify</span>
+<span class="line-num">20</span>
+<span class="line-num">21</span>    d6 = staticinvoke calculateRisk(<span class="hl-num">5.0</span>);
+<span class="line-num">22</span>    d18 = <span class="hl-num">0.0</span>;
+<span class="line-num">23</span>    i2 = <span class="hl-num">0</span>;
+<span class="line-num">24</span>
+<span class="line-num">25</span>  <span class="hl-keyword">label1:</span>
+<span class="line-num">26</span>    <span class="hl-keyword">if</span> i2 >= <span class="hl-num">10</span> <span class="hl-keyword">goto</span> label2;
+<span class="line-num">27</span>    $i0 = i2 * <span class="hl-num">100</span>;
+<span class="line-num">28</span>    $d13 = (<span class="hl-type">double</span>) $i0;
+<span class="line-num">29</span>    d14 = staticinvoke applyTax($d13);
+<span class="line-num">30</span>    d19 = d18 + d14;
+<span class="line-num">31</span>    <span class="hl-added">$i1 = i2 * 1;</span>                <span class="hl-comment">// can simplify</span>
+<span class="line-num">32</span>    d15 = (<span class="hl-type">double</span>) $i1;
+<span class="line-num">33</span>    d18 = d19 + d15;
+<span class="line-num">34</span>    i2 = i2 + <span class="hl-num">1</span>;
+<span class="line-num">35</span>    <span class="hl-keyword">goto</span> label1;
+<span class="line-num">36</span>
+<span class="line-num">37</span>  <span class="hl-keyword">label2:</span>
+<span class="line-num">38</span>    $d7 = d17 + d2;
+<span class="line-num">39</span>    $d8 = $d7 + d3;
+<span class="line-num">40</span>    $d9 = $d8 + d5;
+<span class="line-num">41</span>    $d10 = $d9 + <span class="hl-num">1000.0</span>;
+<span class="line-num">42</span>    d20 = $d10 + <span class="hl-num">100.0</span>;
+<span class="line-num">43</span>    $d11 = d20 + d6;
+<span class="line-num">44</span>    $d12 = $d11 + d18;
+<span class="line-num">45</span>    d21 = $d12 + <span class="hl-num">200.0</span>;
+<span class="line-num">46</span>    <span class="hl-keyword">return</span> d21;
+<span class="line-num">47</span>}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== KEY OBSERVATIONS ========== -->
+        <div class="section">
+            <div class="section-title">
+                <div class="icon" style="background:rgba(74,222,128,0.15);">🔍</div>
+                Key Observations
+            </div>
+
+            <div class="opt-grid">
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>What javac Already Optimizes</h3>
+                        <span class="badge badge-accent">Compile-time</span>
+                    </div>
+                    <div class="opt-card-body" style="display:block; padding:1.25rem;">
+<pre>
+<span class="hl-comment">// These are optimized by the Java compiler itself:</span>
+
+<span class="hl-keyword">1.</span> <strong>Constant Propagation:</strong>
+   <code>baseReturn, bonus</code>
+   <span class="arrow">→</span> replaced with <code>1000.0</code>, <code>200.0</code>
+
+<span class="hl-keyword">2.</span> <strong>Constant Folding:</strong>
+   <code>50 + 50</code> <span class="arrow">→</span> <code>100.0</code> (literal in bytecode)
+
+<span class="hl-keyword">3.</span> <strong>Copy Propagation:</strong>
+   <code>copiedValue = baseReturn</code>  <span class="arrow">→</span> uses <code>1000.0</code>
+   <code>extraBonus = bonus</code>      <span class="arrow">→</span> uses <code>200.0</code>
+
+<span class="hl-keyword">4.</span> <strong>Dead Code Elimination:</strong>
+   <code>unusedVariable = 999</code>  <span class="arrow">→</span> removed
+   <code>deadInvestment = 500</code>  <span class="arrow">→</span> removed
+
+<span class="hl-keyword">5.</span> <strong>Unreachable Code:</strong>
+   <code>if(false) { ... }</code>    <span class="arrow">→</span> removed
+</pre>
+                    </div>
+                </div>
+
+                <div class="opt-card">
+                    <div class="opt-card-header">
+                        <h3>What Soot Can Further Optimize</h3>
+                        <span class="badge badge-purple">IR-level</span>
+                    </div>
+                    <div class="opt-card-body" style="display:block; padding:1.25rem;">
+<pre>
+<span class="hl-comment">// Remaining opportunities for Soot passes:</span>
+
+<span class="hl-keyword">1.</span> <strong>CSE (jop.cse):</strong>
+   <code>d0 + d1</code> computed 3× <span class="arrow">→</span> compute once
+
+<span class="hl-keyword">2.</span> <strong>Algebraic Simplification:</strong>
+   <code>d0 * 1.0</code>  <span class="arrow">→</span> <code>d0</code>
+   <code>d16 + 0.0</code> <span class="arrow">→</span> <code>d16</code>
+   <code>$d4 * 1.0</code> <span class="arrow">→</span> <code>$d4</code>
+
+<span class="hl-keyword">3.</span> <strong>Strength Reduction:</strong>
+   <code>i2 * 1</code> in loop <span class="arrow">→</span> <code>i2</code>
+
+<span class="hl-keyword">4.</span> <strong>Function Inlining (wjop.si):</strong>
+   <code>applyTax()</code>, <code>calculateRisk()</code>
+   <span class="arrow">→</span> inline method bodies
+
+<span class="hl-keyword">5.</span> <strong>Function Cloning:</strong>
+   <code>calculateRisk(5.0)</code> <span class="arrow">→</span> specialized clone
+   Parameter hardcoded, enables const folding
+
+<span class="hl-keyword">6.</span> <strong>Loop Optimization:</strong>
+   Inline + strength reduce inside loop
+   <code>applyTax</code> inlined, <code>year*1</code> eliminated
+</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center; padding:2rem; border-top:1px solid var(--border); color:var(--muted); font-size:0.82rem;">
+        Generated using <strong style="color:var(--accent);">Soot 4.5.0</strong> Framework &nbsp;·&nbsp; FinancialOptimizer.java &nbsp;·&nbsp; Jimple IR Comparison
+    </div>
+
+</body>
+</html>
