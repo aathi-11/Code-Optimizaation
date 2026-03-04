@@ -1,0 +1,46 @@
+;; Function apply_tax (apply_tax, funcdef_no=122, decl_uid=4311, cgraph_uid=123, symbol_order=123)
+int apply_tax (int amount)
+{
+  int _2;
+
+  <bb 2> [local count: 1073741824]:
+  _2 = amount_1(D) + 5;
+  return _2;
+}
+;; Function process_batch (process_batch, funcdef_no=123, decl_uid=4315, cgraph_uid=124, symbol_order=124)
+int process_batch (int count, int rate)
+{
+  int _1;
+  int _4;
+
+  <bb 2> [local count: 1073741824]:
+  _1 = count_2(D) * rate_3(D);
+  _4 = _1 * 2;
+  return _4;
+
+}
+;; Function main (main, funcdef_no=124, decl_uid=4317, cgraph_uid=125, symbol_order=125) (executed once)
+
+int main ()
+{
+  long long int total_balance;
+  int GLOBAL_FEE.0_1;
+  long long int _2;
+  unsigned long long _5;
+  unsigned long long _6;
+  long long int _16;
+
+  <bb 2> [local count: 10737416]:
+  GLOBAL_FEE.0_1 = GLOBAL_FEE;
+  _2 = (long long int) GLOBAL_FEE.0_1;
+  _16 = _2 + 158;
+  _6 = (unsigned long long) _16;
+  _5 = _6 * 1000000;
+  total_balance_21 = (long long int) _5;
+  total_balance_19 = total_balance_21 + 100000000;
+  printf ("Final Balance: %lld\n", total_balance_19);
+  return 0;
+
+}
+
+

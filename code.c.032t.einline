@@ -1,0 +1,150 @@
+;; Function apply_tax (apply_tax, funcdef_no=122, decl_uid=4311, cgraph_uid=123, symbol_order=123)
+
+Iterations: 0
+int apply_tax (int amount)
+{
+  int _2;
+
+  <bb 2> :
+  _2 = amount_1(D) + 5;
+  return _2;
+
+}
+;; Function process_batch (process_batch, funcdef_no=123, decl_uid=4315, cgraph_uid=124, symbol_order=124)
+
+Iterations: 0
+int process_batch (int count, int rate)
+{
+  int _1;
+  int _4;
+
+  <bb 2> :
+  _1 = count_2(D) * rate_3(D);
+  _4 = _1 * 2;
+  return _4;
+}
+;; Function main (main, funcdef_no=124, decl_uid=4317, cgraph_uid=125, symbol_order=125)
+
+Iterations: 1
+
+Symbols to be put in SSA form
+{ D.4359 D.4362 }
+Incremental SSA update started at block: 0
+Number of blocks in CFG: 15
+Number of blocks to update: 14 ( 93%)
+
+
+Merging blocks 5 and 12
+Removing basic block 8
+Merging blocks 14 and 13
+Merging blocks 5 and 11
+int main ()
+{
+  int D.4362;
+  int D.4359;
+  int j;
+  int static_bias;
+  int temp_audit;
+  int check2;
+  int check1;
+  int q;
+  int p;
+  int normalized;
+  int scaled_idx;
+  int final_step;
+  int step2;
+  int step1;
+  int i;
+  int base_val;
+  long long int total_balance;
+  int _1;
+  int _2;
+  long long int _3;
+  int GLOBAL_FEE.0_4;
+  long long int _5;
+  long long int _6;
+  int _20;
+  int _21;
+  int _22;
+  int _37;
+  int _38;
+  int _42;
+  int _43;
+  int _44;
+
+  <bb 2> :
+  total_balance_14 = 0;
+  base_val_15 = 25;
+  i_16 = 0;
+  goto <bb 6>; [INV]
+
+  <bb 3> :
+  step1_25 = base_val_15 + 15;
+  step2_26 = step1_25;
+  final_step_27 = step2_26;
+  scaled_idx_28 = i_10 * 4;
+  normalized_29 = scaled_idx_28;
+  p_30 = 12;
+  q_31 = 8;
+  check1_32 = p_30 * q_31;
+  check2_33 = p_30 * q_31;
+  temp_audit_34 = 500;
+  if (i_10 < -1)
+    goto <bb 4>; [INV]
+  else
+    goto <bb 5>; [INV]
+
+  <bb 4> :
+  total_balance_35 = total_balance_8 + 999;
+
+  <bb 5> :
+  # total_balance_7 = PHI <total_balance_8(3), total_balance_35(4)>
+  static_bias_36 = 80;
+  _21 = 38;
+  _43 = _21;
+  _1 = _43;
+  _2 = final_step_27 + _1;
+  _38 = static_bias_36 + _2;
+  _3 = (long long int) _38;
+  total_balance_39 = total_balance_7 + _3;
+  GLOBAL_FEE.0_4 = GLOBAL_FEE;
+  _5 = (long long int) GLOBAL_FEE.0_4;
+  total_balance_40 = total_balance_39 + _5;
+  i_41 = i_10 + 1;
+
+  <bb 6> :
+  # total_balance_8 = PHI <total_balance_14(2), total_balance_40(5)>
+  # i_10 = PHI <i_16(2), i_41(5)>
+  if (i_10 <= 999999)
+    goto <bb 3>; [INV]
+  else
+    goto <bb 7>; [INV]
+
+  <bb 7> :
+  j_18 = 0;
+  goto <bb 9>; [INV]
+
+  <bb 8> :
+  _37 = 50;
+  _42 = _37 * 2;
+  _44 = _42;
+  _22 = _44;
+  _6 = (long long int) _22;
+  total_balance_23 = total_balance_9 + _6;
+  j_24 = j_11 + 1;
+
+  <bb 9> :
+  # total_balance_9 = PHI <total_balance_8(7), total_balance_23(8)>
+  # j_11 = PHI <j_18(7), j_24(8)>
+  if (j_11 <= 999999)
+    goto <bb 8>; [INV]
+  else
+    goto <bb 10>; [INV]
+
+  <bb 10> :
+  printf ("Final Balance: %lld\n", total_balance_9);
+  _20 = 0;
+  return _20;
+}
+
+

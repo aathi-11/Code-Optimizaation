@@ -1,0 +1,118 @@
+;; Function apply_tax (apply_tax, funcdef_no=122, decl_uid=4311, cgraph_uid=123, symbol_order=123)
+
+;; 1 loops found
+;;
+;; Loop 0
+;;  header 0, latch 1
+;;  depth 0, outer -1
+;;  nodes: 0 1 2
+;; 2 succs { 1 }
+int apply_tax (int amount)
+{
+  int _2;
+
+  <bb 2> [local count: 1073741824]:
+  _2 = amount_1(D) + 5;
+  return _2;
+}
+
+;; Function process_batch (process_batch, funcdef_no=123, decl_uid=4315, cgraph_uid=124, symbol_order=124)
+
+;; 1 loops found
+;;
+;; Loop 0
+;;  header 0, latch 1
+;;  depth 0, outer -1
+;;  nodes: 0 1 2
+;; 2 succs { 1 }
+int process_batch (int count, int rate)
+{
+  int _1;
+  int _4;
+
+  <bb 2> [local count: 1073741824]:
+  _1 = count_2(D) * rate_3(D);
+  _4 = _1 * 2;
+  return _4;
+}
+
+;; Function main (main, funcdef_no=124, decl_uid=4317, cgraph_uid=125, symbol_order=125) (executed once)
+
+;; 3 loops found
+;;
+;; Loop 0
+;;  header 0, latch 1
+;;  depth 0, outer -1
+;;  nodes: 0 1 2 3 8 4 5 7 6
+;;
+;; Loop 2
+;;  header 5, latch 7
+;;  depth 1, outer 0, finite_p
+;;  upper_bound 999999
+;;  likely_upper_bound 999999
+;;  estimate 999999
+;;  iterations by profile: 98.000021 (unreliable, maybe flat) entry count:10737416 (estimated locally, freq 1.0000)
+;;  nodes: 5 7
+;;
+;; Loop 1
+;;  header 3, latch 8
+;;  depth 1, outer 0, finite_p
+;;  upper_bound 999999
+;;  likely_upper_bound 999999
+;;  estimate 999999
+;;  iterations by profile: 98.000021 (unreliable, maybe flat) entry count:10737416 (estimated locally, freq 1.0000)
+;;  nodes: 3 8
+;; 2 succs { 3 }
+;; 3 succs { 8 4 }
+;; 8 succs { 3 }
+;; 4 succs { 5 }
+;; 5 succs { 7 6 }
+;; 7 succs { 5 }
+;; 6 succs { 1 }
+int main ()
+{
+  int j;
+  int i;
+  long long int total_balance;
+  int GLOBAL_FEE.0_1;
+  long long int _2;
+
+  <bb 2> [local count: 10737416]:
+  GLOBAL_FEE.0_1 = GLOBAL_FEE;
+  _2 = (long long int) GLOBAL_FEE.0_1;
+
+  <bb 3> [local count: 1063004408]:
+  # total_balance_18 = PHI <total_balance_12(8), 0(2)>
+  # i_22 = PHI <i_13(8), 0(2)>
+  total_balance_11 = total_balance_18 + 158;
+  total_balance_12 = _2 + total_balance_11;
+  i_13 = i_22 + 1;
+  if (i_13 != 1000000)
+    goto <bb 8>; [98.99%]
+  else
+    goto <bb 4>; [1.01%]
+
+  <bb 8> [local count: 1052266995]:
+  goto <bb 3>; [100.00%]
+
+  <bb 4> [local count: 10737416]:
+
+  <bb 5> [local count: 1063004408]:
+  # total_balance_20 = PHI <total_balance_9(7), total_balance_12(4)>
+  # j_23 = PHI <j_10(7), 0(4)>
+  total_balance_9 = total_balance_20 + 100;
+  j_10 = j_23 + 1;
+  if (j_10 != 1000000)
+    goto <bb 7>; [98.99%]
+  else
+    goto <bb 6>; [1.01%]
+
+  <bb 7> [local count: 1052266995]:
+  goto <bb 5>; [100.00%]
+
+  <bb 6> [local count: 10737416]:
+  printf ("Final Balance: %lld\n", total_balance_9);
+  return 0;
+}
+
+

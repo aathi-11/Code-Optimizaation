@@ -1,0 +1,102 @@
+int apply_tax (int amount)
+{
+  int D.4343;
+
+  D.4343 = amount + 5;
+  return D.4343;
+}
+
+
+ process_batch (int count, int rate)
+{
+  int D.4345;
+
+  _1 = count * rate;
+  D.4345 = _1 * 2;
+  return D.4345;
+}
+
+
+ main ()
+{
+  int D.4349;
+  int D.4350;
+  int D.4351;
+
+  {
+    long long int total_balance;
+    int base_val;
+
+    total_balance = 0;
+    base_val = 25;
+    {
+      int i;
+
+      i = 0;
+      goto <D.4337>;
+      <D.4336>:
+      {
+        int step1;
+        int step2;
+        int final_step;
+        int scaled_idx;
+        int normalized;
+        int p;
+        int q;
+        int check1;
+        int check2;
+        int temp_audit;
+        int static_bias;
+
+        step1 = base_val + 15;
+        step2 = step1;
+        final_step = step2;
+        scaled_idx = i * 4;
+        normalized = scaled_idx;
+        p = 12;
+        q = 8;
+        check1 = p * q;
+        check2 = p * q;
+        temp_audit = 500;
+        if (i < -1) goto <D.4347>; else goto <D.4348>;
+        <D.4347>:
+        total_balance = total_balance + 999;
+        <D.4348>:
+        static_bias = 80;
+        _1 = apply_tax (33);
+        _2 = final_step + _1;
+        D.4349 = static_bias + _2;
+        _3 = (long long int) D.4349;
+        total_balance = total_balance + _3;
+        GLOBAL_FEE.0_4 = GLOBAL_FEE;
+        _5 = (long long int) GLOBAL_FEE.0_4;
+        total_balance = total_balance + _5;
+      }
+      i = i + 1;
+      <D.4337>:
+      if (i <= 999999) goto <D.4336>; else goto <D.4334>;
+      <D.4334>:
+    }
+    {
+      int j;
+
+      j = 0;
+      goto <D.4341>;
+      <D.4340>:
+      D.4350 = process_batch (10, 5);
+      _6 = (long long int) D.4350;
+      total_balance = total_balance + _6;
+      j = j + 1;
+      <D.4341>:
+      if (j <= 999999) goto <D.4340>; else goto <D.4338>;
+      <D.4338>:
+    }
+    printf ("Final Balance: %lld\n", total_balance);
+    D.4351 = 0;
+    return D.4351;
+  }
+  D.4351 = 0;
+  return D.4351;
+}
+
+

@@ -1,0 +1,94 @@
+;; Function apply_tax (apply_tax, funcdef_no=122, decl_uid=4311, cgraph_uid=123, symbol_order=123)
+
+int apply_tax (int amount)
+{
+  int _2;
+
+  <bb 2> :
+  _2 = amount_1(D) + 5;
+  return _2;
+}
+;; Function process_batch (process_batch, funcdef_no=123, decl_uid=4315, cgraph_uid=124, symbol_order=124)
+
+int process_batch (int count, int rate)
+{
+  int _1;
+  int _4;
+
+  <bb 2> :
+  _1 = count_2(D) * rate_3(D);
+  _4 = _1 * 2;
+  return _4;
+
+}
+;; Function main (main, funcdef_no=124, decl_uid=4317, cgraph_uid=125, symbol_order=125)
+
+int main ()
+{
+  int D.4362;
+  int D.4359;
+  int j;
+  int static_bias;
+  int temp_audit;
+  int check2;
+  int check1;
+  int q;
+  int p;
+  int normalized;
+  int scaled_idx;
+  int final_step;
+  int step2;
+  int step1;
+  int i;
+  int base_val;
+  long long int total_balance;
+  int GLOBAL_FEE.0_4;
+  long long int _5;
+
+  <bb 2> :
+  goto <bb 6>; [INV]
+
+  <bb 3> :
+  scaled_idx_28 = i_10 << 2;
+  if (i_10 < -1)
+    goto <bb 4>; [INV]
+  else
+    goto <bb 5>; [INV]
+
+  <bb 4> :
+  total_balance_35 = total_balance_8 + 999;
+
+  <bb 5> :
+  # total_balance_7 = PHI <total_balance_8(3), total_balance_35(4)>
+  total_balance_39 = total_balance_7 + 158;
+  GLOBAL_FEE.0_4 = GLOBAL_FEE;
+  _5 = (long long int) GLOBAL_FEE.0_4;
+  total_balance_40 = _5 + total_balance_39;
+  i_41 = i_10 + 1;
+
+  <bb 6> :
+  # total_balance_8 = PHI <0(2), total_balance_40(5)>
+  # i_10 = PHI <0(2), i_41(5)>
+  if (i_10 <= 999999)
+    goto <bb 3>; [INV]
+  else
+    goto <bb 8>; [INV]
+
+  <bb 7> :
+  total_balance_23 = total_balance_9 + 100;
+  j_24 = j_11 + 1;
+
+  <bb 8> :
+  # total_balance_9 = PHI <total_balance_8(6), total_balance_23(7)>
+  # j_11 = PHI <0(6), j_24(7)>
+  if (j_11 <= 999999)
+    goto <bb 7>; [INV]
+  else
+    goto <bb 9>; [INV]
+
+  <bb 9> :
+  printf ("Final Balance: %lld\n", total_balance_9);
+  return 0;
+}
+
+
